@@ -1,0 +1,320 @@
+// This is your Prisma schema file,
+// learn more about it in the docs: https://pris.ly/d/prisma-schema
+
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider = "postgresql"
+  url      = env("DATABASE_URL")
+}
+
+// ============================================
+// 멀티테넌트 핵심 모델
+// ============================================
+
+model Tenant {
+  id        String   @id @default(cuid())
+  name      String   // 회사명
+  slug      String   @unique // 서브도메인 슬러그 (예: client-a)
+  subdomain String   @unique // 전체 서브도메인 (예: client-a.myerp.com)
+  
+  // 브랜딩 설정
+  logoUrl   String?
+  primaryColor String? @default("#000000")
+  
+  // 메타데이터
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+  
+  // 관계
+  users           User[]
+  customers       Customer[]
+  products        Product[]
+  orders          Order[]
+  productVariants ProductVariant[]
+  inventoryItems  InventoryItem[]
+  orderItems      OrderItem[]
+  
+  @@index([slug])
+  @@index([subdomain])
+  @@map("tenants")
+}
+
+enum UserRole {
+  ADMIN  // 테넌트 관리자
+  MEMBER // 일반 사용자
+}
+
+model User {
+  id        String   @id @default(cuid())
+  email     String
+  name      String?
+  password  String   // 해시된 비밀번호
+  role      UserRole @default(MEMBER)
+  
+  // 테넌트 관계 (필수)
+  tenantId  String
+  tenant    Tenant   @relation(fields: [tenantId], references: [id], onDelete: Cascade)
+  
+  // 메타데이터
+  emailVerified DateTime?
+  createdAt     DateTime @default(now())
+  updatedAt     DateTime @updatedAt
+  
+  @@unique([tenantId, email])
+  @@index([tenantId])
+  @@index([email])
+  @@map("users")
+}
+
+// ============================================
+// CRM 모델
+// ============================================
+
+model Customer {
+  id        String   @id @default(cuid())
+  name      String
+  email     String?
+  phone     String?
+  company   String?
+  
+  // 주소 정보
+  address   String?
+  city      String?
+  state     String?
+  zipCode   String?
+  country   String?
+  
+  // 메모
+  notes     String?
+  
+  // 테넌트 관계 (필수)
+  tenantId  String
+  tenant    Tenant   @relation(fields: [tenantId], references: [id], onDelete: Cascade)
+  
+  // 메타데이터
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+  
+  // 관계
+  orders    Order[]
+  
+  @@index([tenantId])
+  @@index([tenantId, email])
+  @@map("customers")
+}
+
+// ============================================
+// 상품 관리 모델
+// ============================================
+
+model Product {
+  id          String   @id @default(cuid())
+  name        String
+  sku         String?  // 상품 기본 SKU
+  description String?
+  category    String?
+  brand       String?
+  
+  // 이미지
+  imageUrls   String[] @default([])
+  
+  // 테넌트 관계 (필수)
+  tenantId    String
+  tenant      Tenant   @relation(fields: [tenantId], references: [id], onDelete: Cascade)
+  
+  // 메타데이터
+  createdAt   DateTime @default(now())
+  updatedAt   DateTime @updatedAt
+  
+  // 관계
+  variants    ProductVariant[]
+  
+  @@index([tenantId])
+  @@index([tenantId, sku])
+  @@index([tenantId, category])
+  @@map("products")
+}
+
+model ProductVariant {
+  id        String   @id @default(cuid())
+  name      String   // 옵션명 (예: "사이즈 7, 골드")
+  sku       String?  // Variant별 SKU
+  
+  // 옵션 속성 (JSON으로 저장)
+  attributes Json     @default("{}") // 예: {"size": "7", "color": "gold"}
+  
+  // 가격 및 재고
+  price     Decimal  @db.Decimal(10, 2)
+  cost      Decimal? @db.Decimal(10, 2) // 원가
+  quantity  Int      @default(0) // 현재 재고 수량
+  
+  // 시리얼 넘버 추적 여부
+  trackSerialNumbers Boolean @default(false)
+  
+  // 상품 관계 (필수)
+  productId String
+  product   Product  @relation(fields: [productId], references: [id], onDelete: Cascade)
+  
+  // 테넌트 관계 (필수) - 데이터 격리를 위해
+  tenantId  String
+  tenant    Tenant   @relation(fields: [tenantId], references: [id], onDelete: Cascade)
+  
+  // 메타데이터
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+  
+  // 관계
+  inventoryItems InventoryItem[]
+  orderItems     OrderItem[]
+  
+  @@index([tenantId])
+  @@index([productId])
+  @@index([tenantId, sku])
+  @@map("product_variants")
+}
+
+model InventoryItem {
+  id            String   @id @default(cuid())
+  
+  // 시리얼 넘버 및 배치 정보
+  serialNumber  String?  @unique
+  batchNumber   String?
+  lotNumber     String?
+  
+  // 상태
+  status        InventoryStatus @default(AVAILABLE)
+  
+  // 입고 정보
+  receivedDate  DateTime?
+  expiryDate    DateTime?
+  
+  // 위치 정보
+  location      String?  // 창고 위치 등
+  
+  // Variant 관계 (필수)
+  variantId     String
+  variant       ProductVariant @relation(fields: [variantId], references: [id], onDelete: Cascade)
+  
+  // 테넌트 관계 (필수)
+  tenantId      String
+  tenant        Tenant   @relation(fields: [tenantId], references: [id], onDelete: Cascade)
+  
+  // 메타데이터
+  createdAt     DateTime @default(now())
+  updatedAt     DateTime @updatedAt
+  
+  // 관계
+  orderItems    OrderItem[]
+  
+  @@index([tenantId])
+  @@index([variantId])
+  @@index([tenantId, serialNumber])
+  @@index([tenantId, status])
+  @@map("inventory_items")
+}
+
+enum InventoryStatus {
+  AVAILABLE   // 사용 가능
+  RESERVED    // 예약됨 (주문에 연결됨)
+  SOLD        // 판매됨
+  DAMAGED     // 손상됨
+  RETURNED    // 반품됨
+}
+
+// ============================================
+// 주문 관리 모델
+// ============================================
+
+enum OrderStatus {
+  PENDING     // 대기
+  PROCESSING  // 처리중
+  COMPLETED   // 완료
+  CANCELLED   // 취소
+  REFUNDED    // 환불됨
+}
+
+model Order {
+  id        String      @id @default(cuid())
+  orderNumber String    @unique // 주문 번호 (예: ORD-2024-001)
+  status    OrderStatus @default(PENDING)
+  
+  // 금액 정보
+  subtotal  Decimal     @db.Decimal(10, 2)
+  tax       Decimal     @db.Decimal(10, 2) @default(0)
+  discount  Decimal     @db.Decimal(10, 2) @default(0)
+  total     Decimal     @db.Decimal(10, 2)
+  
+  // 배송 정보
+  shippingAddress String?
+  shippingMethod  String?
+  trackingNumber  String?
+  
+  // 메모
+  notes     String?
+  
+  // 고객 관계
+  customerId String?
+  customer   Customer? @relation(fields: [customerId], references: [id], onDelete: SetNull)
+  
+  // 테넌트 관계 (필수)
+  tenantId  String
+  tenant    Tenant   @relation(fields: [tenantId], references: [id], onDelete: Cascade)
+  
+  // 메타데이터
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+  completedAt DateTime?
+  
+  // 관계
+  items     OrderItem[]
+  
+  @@index([tenantId])
+  @@index([tenantId, status])
+  @@index([tenantId, customerId])
+  @@index([orderNumber])
+  @@map("orders")
+}
+
+model OrderItem {
+  id        String   @id @default(cuid())
+  
+  // 수량 및 가격
+  quantity  Int
+  unitPrice Decimal  @db.Decimal(10, 2)
+  totalPrice Decimal @db.Decimal(10, 2) // quantity * unitPrice
+  
+  // 주문 관계 (필수)
+  orderId   String
+  order     Order    @relation(fields: [orderId], references: [id], onDelete: Cascade)
+  
+  // Variant 관계 (필수)
+  variantId String
+  variant   ProductVariant @relation(fields: [variantId], references: [id])
+  
+  // InventoryItem 관계 (시리얼 넘버 추적 시)
+  inventoryItemId String?
+  inventoryItem   InventoryItem? @relation(fields: [inventoryItemId], references: [id])
+  
+  // 테넌트 관계 (필수)
+  tenantId  String
+  tenant    Tenant   @relation(fields: [tenantId], references: [id], onDelete: Cascade)
+  
+  // 메타데이터
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+  
+  @@index([tenantId])
+  @@index([orderId])
+  @@index([variantId])
+  @@map("order_items")
+}
+
+// ============================================
+// 테넌트 관계 추가 (Prisma 관계 완성)
+// ============================================
+
+// Tenant 모델에 관계 추가 (위에서 이미 정의됨)
+
