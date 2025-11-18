@@ -1,15 +1,27 @@
 import Link from "next/link";
+import Image from "next/image";
 
 export default function HomePage() {
   return (
     <div className="flex min-h-screen items-center justify-center bg-gradient-to-br from-indigo-50 to-blue-100">
       <div className="w-full max-w-2xl space-y-8 p-8 text-center">
         <div>
-          <h1 className="text-5xl font-bold text-gray-900">Seller ERP</h1>
+          {/* Logo */}
+          <div className="mb-6 flex justify-center">
+            <Image
+              src="/logo.png"
+              alt="WOW Seller ERP"
+              width={120}
+              height={120}
+              className="h-auto w-auto"
+              priority
+            />
+          </div>
+          <h1 className="text-5xl font-bold text-gray-900">WOW Seller ERP</h1>
           <p className="mt-4 text-xl text-gray-600">
             주얼리, 소형 카메라, 소형 전자제품 판매 업체를 위한
           </p>
-          <p className="text-xl text-gray-600">현대적인 멀티테넌트 SaaS ERP 시스템</p>
+          <p className="text-xl text-gray-600">현대적인 멀티테넌시(Multi-tenancy) SaaS ERP 시스템</p>
         </div>
 
         <div className="flex flex-col items-center gap-4 sm:flex-row sm:justify-center">

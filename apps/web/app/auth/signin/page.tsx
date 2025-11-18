@@ -3,6 +3,8 @@
 import { signIn } from "next-auth/react";
 import { useState } from "react";
 import { useSearchParams } from "next/navigation";
+import Image from "next/image";
+import Link from "next/link";
 
 export default function SignInPage() {
   const searchParams = useSearchParams();
@@ -47,8 +49,21 @@ export default function SignInPage() {
     <div className="flex min-h-screen items-center justify-center bg-gray-50">
       <div className="w-full max-w-md space-y-8 rounded-lg bg-white p-8 shadow-md">
         <div>
+          {/* Logo */}
+          <div className="mb-6 flex justify-center">
+            <Link href="/">
+              <Image
+                src="/logo.png"
+                alt="WOW Seller ERP"
+                width={80}
+                height={80}
+                className="h-auto w-auto"
+                priority
+              />
+            </Link>
+          </div>
           <h2 className="text-center text-3xl font-bold text-gray-900">
-            로그인
+            WOW Seller ERP
           </h2>
           <p className="mt-2 text-center text-sm text-gray-600">
             ERP 시스템에 로그인하세요

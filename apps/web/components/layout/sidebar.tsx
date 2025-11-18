@@ -1,6 +1,7 @@
 "use client";
 
 import Link from "next/link";
+import Image from "next/image";
 import { usePathname, useSearchParams } from "next/navigation";
 import {
   LayoutDashboard,
@@ -54,10 +55,14 @@ export function Sidebar() {
       {/* Logo */}
       <div className="flex h-16 items-center border-b border-gray-200 px-6">
         <Link href={tenant ? `/dashboard?tenant=${tenant}` : "/dashboard"} className="flex items-center space-x-2">
-          <div className="flex h-8 w-8 items-center justify-center rounded-lg bg-indigo-600">
-            <span className="text-lg font-bold text-white">S</span>
-          </div>
-          <span className="text-xl font-bold text-gray-900">Seller ERP</span>
+          <Image
+            src="/logo.png"
+            alt="WOW Seller ERP"
+            width={32}
+            height={32}
+            className="h-8 w-8 object-contain"
+          />
+          <span className="text-xl font-bold text-gray-900">WOW Seller ERP</span>
         </Link>
       </div>
 
