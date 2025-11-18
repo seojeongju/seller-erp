@@ -88,4 +88,4 @@ RUN echo "=== Production stage: Checking copied files ===" && \
 EXPOSE 3001
 
 # Start the application (from /app root)
-CMD ["node", "apps/api/dist/main"]
+CMD ["node", "apps/api/dist/apps/api/src/main"]
