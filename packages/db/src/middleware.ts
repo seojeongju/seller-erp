@@ -22,7 +22,7 @@ export function withTenantFilter<T extends PrismaClient>(
   prisma: T,
   tenantId: string,
 ): T {
-  return prisma.$extends({
+  return (prisma as any).$extends({
     query: {
       $allModels: {
         async findMany({ args, query }) {
