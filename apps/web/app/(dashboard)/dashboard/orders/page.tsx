@@ -21,7 +21,7 @@ const statusLabels: Record<string, string> = {
 
 export default async function OrdersPage() {
   // TODO: API에서 주문 목록 가져오기
-  const orders = [];
+  const orders: any[] = [];
 
   return (
     <div className="space-y-6">

@@ -17,7 +17,7 @@ const statusLabels: Record<string, string> = {
 
 export default async function InventoryPage() {
   // TODO: API에서 재고 목록 가져오기
-  const inventoryItems = [];
+  const inventoryItems: any[] = [];
 
   return (
     <div className="space-y-6">

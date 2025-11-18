@@ -3,7 +3,7 @@ import { Plus, Search } from "lucide-react";
 
 export default async function CustomersPage() {
   // TODO: API에서 고객 목록 가져오기
-  const customers = [];
+  const customers: any[] = [];
 
   return (
     <div className="space-y-6">
