@@ -24,7 +24,7 @@ COPY apps/api ./apps/api
 COPY packages ./packages
 
 # Generate Prisma Client (필수!)
-RUN pnpm --filter @seller-erp/db prisma generate
+RUN pnpm --filter @seller-erp/db db:generate
 
 # Build the application
 RUN pnpm --filter @seller-erp/api build
@@ -55,7 +55,7 @@ COPY --from=base /app/packages ./packages
 
 # Generate Prisma Client
 WORKDIR /app/packages/db
-RUN pnpm prisma generate
+RUN pnpm db:generate
 
 # Expose port (Railway will set PORT env var)
 EXPOSE 3001
