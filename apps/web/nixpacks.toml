@@ -3,15 +3,15 @@ nixPkgs = ["nodejs-18_x", "pnpm"]
 
 [phases.install]
 cmds = [
-  "cd ../.. && pnpm install --frozen-lockfile",
-  "cd ../.. && pnpm --filter @seller-erp/db db:generate"
+  "pnpm install --frozen-lockfile",
+  "pnpm --filter @seller-erp/db db:generate"
 ]
 
 [phases.build]
-cmds = ["cd ../.. && pnpm --filter @seller-erp/web build"]
+cmds = ["pnpm --filter @seller-erp/web build"]
 
 [start]
-cmd = "cd ../.. && pnpm --filter @seller-erp/web start"
+cmd = "pnpm --filter @seller-erp/web start"
 
 [variables]
 NODE_ENV = "production"
