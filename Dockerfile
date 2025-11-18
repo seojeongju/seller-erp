@@ -1,8 +1,11 @@
 # Multi-stage build for NestJS API (Monorepo)
 FROM node:18-alpine AS base
 
+# Cache buster - change this value to force rebuild
+ARG CACHEBUST=2
+
 # Install pnpm
-RUN npm install -g pnpm
+RUN echo "Cache bust: $CACHEBUST" && npm install -g pnpm
 
 # Set working directory
 WORKDIR /app
