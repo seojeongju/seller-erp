@@ -1,7 +1,6 @@
 {
-  "buildCommand": "cd ../.. && pnpm turbo build --filter=@seller-erp/web",
-  "outputDirectory": "apps/web/.next",
-  "installCommand": "pnpm install",
+  "buildCommand": "npm run build",
+  "installCommand": "npm install",
   "framework": "nextjs",
   "regions": ["icn1"]
 }
