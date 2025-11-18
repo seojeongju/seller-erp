@@ -95,5 +95,4 @@ RUN echo "=== Production stage: Checking copied files ===" && \
 EXPOSE 3001
 
 # Start the application (from /app root)
-# Use tsconfig-paths to resolve path mappings at runtime
-CMD ["node", "-r", "tsconfig-paths/register", "apps/api/dist/apps/api/src/main"]
+CMD ["node", "apps/api/dist/apps/api/src/main"]
