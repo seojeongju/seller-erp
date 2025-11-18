@@ -23,7 +23,7 @@ RUN pnpm install --frozen-lockfile
 COPY apps/api ./apps/api
 COPY packages ./packages
 
-# Generate Prisma Client (필수!)
+# Generate Prisma Client
 WORKDIR /app/packages/db
 RUN pnpm db:generate
 
@@ -58,15 +58,14 @@ RUN pnpm install --frozen-lockfile --prod
 WORKDIR /app/packages/db
 RUN pnpm db:generate
 
+# Go back to root
+WORKDIR /app
+
 # Copy built application
-COPY --from=base /app/apps/api/dist /app/apps/api/dist
+COPY --from=base /app/apps/api/dist ./apps/api/dist
 
 # Expose port (Railway will set PORT env var)
 EXPOSE 3001
 
-# Set working directory to API
-WORKDIR /app/apps/api
-
 # Start the application
-CMD ["node", "dist/main.js"]
-
+CMD ["node", "apps/api/dist/main.js"]
