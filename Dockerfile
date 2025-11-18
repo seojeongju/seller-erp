@@ -58,8 +58,8 @@ COPY apps/api/package.json ./apps/api/
 COPY packages/db/package.json ./packages/db/
 COPY packages/types/package.json ./packages/types/
 
-# Copy packages (including Prisma schema)
-COPY --from=base /app/packages ./packages
+# Copy ONLY Prisma schema (needed for Prisma Client generation)
+COPY --from=base /app/packages/db/prisma ./packages/db/prisma
 
 # Install production dependencies only
 RUN pnpm install --frozen-lockfile --prod
@@ -71,7 +71,7 @@ RUN pnpm db:generate
 # Go back to root
 WORKDIR /app
 
-# Copy built application
+# Copy built application (includes compiled packages in dist)
 COPY --from=base /app/apps/api/dist ./apps/api/dist
 
 # Debug: Check what was copied
