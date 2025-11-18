@@ -59,8 +59,7 @@ WORKDIR /app/packages/db
 RUN pnpm db:generate
 
 # Copy built application
-WORKDIR /app
-COPY --from=base /app/apps/api/dist ./apps/api/dist
+COPY --from=base /app/apps/api/dist /app/apps/api/dist
 
 # Expose port (Railway will set PORT env var)
 EXPOSE 3001
