@@ -1,5 +1,5 @@
 {
-  "buildCommand": "pnpm build",
+  "buildCommand": "cd ../.. && pnpm --filter @seller-erp/db db:generate && cd apps/web && pnpm build",
   "installCommand": "npm install -g pnpm@8.15.0 && pnpm install",
   "framework": "nextjs",
   "regions": ["icn1"]
