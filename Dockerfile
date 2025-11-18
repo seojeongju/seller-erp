@@ -1,8 +1,11 @@
 # Multi-stage build for NestJS API (Monorepo)
-FROM node:18-alpine AS base
+FROM node:18-slim AS base
 
 # Cache buster - change this value to force rebuild
-ARG CACHEBUST=2
+ARG CACHEBUST=3
+
+# Install OpenSSL and other dependencies
+RUN apt-get update && apt-get install -y openssl ca-certificates && rm -rf /var/lib/apt/lists/*
 
 # Install pnpm
 RUN echo "Cache bust: $CACHEBUST" && npm install -g pnpm
@@ -42,7 +45,10 @@ RUN pnpm build && \
     find . -name "*.js" -type f | head -20
 
 # Production stage
-FROM node:18-alpine AS production
+FROM node:18-slim AS production
+
+# Install OpenSSL and other dependencies
+RUN apt-get update && apt-get install -y openssl ca-certificates && rm -rf /var/lib/apt/lists/*
 
 # Install pnpm
 RUN npm install -g pnpm
