@@ -5,7 +5,7 @@
   "scripts": {
     "dev": "next dev -p 3000",
     "build": "next build",
-    "build:vercel": "cd ../.. && npm install --legacy-peer-deps && cd packages/db && NODE_ENV=development npm install --legacy-peer-deps && PRISMA_ENGINES_CHECKSUM_IGNORE_MISSING=1 npx prisma generate && cd ../../apps/web && NODE_ENV=development npm install --legacy-peer-deps && npm run build",
+    "build:vercel": "cd ../.. && npm install --legacy-peer-deps && cd packages/db && NODE_ENV=development npm install --legacy-peer-deps && PRISMA_ENGINES_CHECKSUM_IGNORE_MISSING=1 PRISMA_SKIP_POSTINSTALL_GENERATE=1 npx prisma generate --schema=./prisma/schema.prisma || (sleep 5 && npx prisma generate --schema=./prisma/schema.prisma) && cd ../../apps/web && NODE_ENV=development npm install --legacy-peer-deps && npm run build",
     "start": "next start",
     "lint": "next lint"
   },
