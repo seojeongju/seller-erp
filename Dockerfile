@@ -24,9 +24,11 @@ COPY apps/api ./apps/api
 COPY packages ./packages
 
 # Generate Prisma Client (필수!)
-RUN pnpm --filter @seller-erp/db db:generate
+WORKDIR /app/packages/db
+RUN pnpm db:generate
 
 # Build the application
+WORKDIR /app
 RUN pnpm --filter @seller-erp/api build
 
 # Production stage
@@ -51,11 +53,13 @@ RUN pnpm install --frozen-lockfile --prod
 
 # Copy built application
 COPY --from=base /app/apps/api/dist ./apps/api/dist
+
+# Copy packages (including Prisma schema)
 COPY --from=base /app/packages ./packages
 
-# Generate Prisma Client
-WORKDIR /app/packages/db
-RUN pnpm db:generate
+# Copy generated Prisma Client from base stage
+COPY --from=base /app/node_modules/.prisma ./node_modules/.prisma
+COPY --from=base /app/node_modules/@prisma/client ./node_modules/@prisma/client
 
 # Expose port (Railway will set PORT env var)
 EXPOSE 3001
