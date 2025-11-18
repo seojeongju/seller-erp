@@ -48,18 +48,19 @@ COPY apps/api/package.json ./apps/api/
 COPY packages/db/package.json ./packages/db/
 COPY packages/types/package.json ./packages/types/
 
-# Install production dependencies only
-RUN pnpm install --frozen-lockfile --prod
-
-# Copy built application
-COPY --from=base /app/apps/api/dist ./apps/api/dist
-
 # Copy packages (including Prisma schema)
 COPY --from=base /app/packages ./packages
 
-# Copy generated Prisma Client from base stage
-COPY --from=base /app/node_modules/.prisma ./node_modules/.prisma
-COPY --from=base /app/node_modules/@prisma/client ./node_modules/@prisma/client
+# Install production dependencies only
+RUN pnpm install --frozen-lockfile --prod
+
+# Generate Prisma Client in production
+WORKDIR /app/packages/db
+RUN pnpm db:generate
+
+# Copy built application
+WORKDIR /app
+COPY --from=base /app/apps/api/dist ./apps/api/dist
 
 # Expose port (Railway will set PORT env var)
 EXPOSE 3001
