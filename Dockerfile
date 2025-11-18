@@ -28,8 +28,14 @@ WORKDIR /app/packages/db
 RUN pnpm db:generate
 
 # Build the application
-WORKDIR /app
-RUN pnpm --filter @seller-erp/api build
+WORKDIR /app/apps/api
+RUN pnpm build
+
+# Debug: Check build output
+RUN echo "=== Build output ===" && \
+    ls -la dist/ && \
+    echo "=== Files in dist ===" && \
+    find dist -type f
 
 # Production stage
 FROM node:18-alpine AS production
@@ -67,5 +73,5 @@ COPY --from=base /app/apps/api/dist ./apps/api/dist
 # Expose port (Railway will set PORT env var)
 EXPOSE 3001
 
-# Start the application
-CMD ["node", "apps/api/dist/main.js"]
+# Start the application (from /app root)
+CMD ["node", "apps/api/dist/main"]
