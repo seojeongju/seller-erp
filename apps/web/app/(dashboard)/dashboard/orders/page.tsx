@@ -1,6 +1,9 @@
 import Link from "next/link";
-import { Plus, Search } from "lucide-react";
+import { Plus } from "lucide-react";
 import { apiServer } from "@/lib/api";
+import { SearchInput } from "@/components/common/search-input";
+import { FilterSelect } from "@/components/common/filter-select";
+import { Pagination } from "@/components/common/pagination";
 
 const statusColors: Record<string, string> = {
   PENDING: "bg-yellow-100 text-yellow-800",
@@ -20,18 +23,45 @@ const statusLabels: Record<string, string> = {
   CANCELLED: "취소됨",
 };
 
-export default async function OrdersPage() {
+interface OrdersPageProps {
+  searchParams: {
+    page?: string;
+    search?: string;
+    status?: string;
+  };
+}
+
+export default async function OrdersPage({ searchParams }: OrdersPageProps) {
+  // URL 파라미터에서 검색 조건 추출
+  const page = parseInt(searchParams.page || "1", 10);
+  const limit = 10;
+  const search = searchParams.search || "";
+  const status = searchParams.status || "";
+
+  // API 쿼리 파라미터 구성
+  const queryParams = new URLSearchParams({
+    page: page.toString(),
+    limit: limit.toString(),
+  });
+  if (search) queryParams.set("search", search);
+  if (status) queryParams.set("status", status);
+
   // API에서 주문 목록 가져오기
   let orders: any[] = [];
-  let pagination: any = null;
+  let pagination: any = {
+    page: 1,
+    limit: 10,
+    total: 0,
+    totalPages: 1,
+  };
 
   try {
-    const response = await apiServer<{ data: any[]; pagination: any }>("/api/orders?page=1&limit=100");
-    if (Array.isArray(response)) {
-      orders = response;
-    } else if (response?.data) {
+    const response = await apiServer<{ data: any[]; pagination: any }>(
+      `/api/orders?${queryParams.toString()}`
+    );
+    if (response?.data) {
       orders = response.data;
-      pagination = response.pagination;
+      pagination = response.pagination || pagination;
     }
   } catch (error) {
     console.error("Error fetching orders:", error);
@@ -57,25 +87,22 @@ export default async function OrdersPage() {
 
       {/* Search and Filters */}
       <div className="flex items-center space-x-4">
-        <div className="flex-1">
-          <div className="relative">
-            <Search className="absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-gray-400" />
-            <input
-              type="text"
-              placeholder="주문 번호, 고객명으로 검색..."
-              className="w-full rounded-lg border border-gray-300 py-2 pl-10 pr-4 text-sm focus:border-indigo-500 focus:outline-none focus:ring-1 focus:ring-indigo-500"
-            />
-          </div>
-        </div>
-        <select className="rounded-lg border border-gray-300 px-4 py-2 text-sm focus:border-indigo-500 focus:outline-none focus:ring-1 focus:ring-indigo-500">
-          <option value="">전체 상태</option>
-          <option value="PENDING">대기 중</option>
-          <option value="CONFIRMED">확인됨</option>
-          <option value="PROCESSING">처리 중</option>
-          <option value="SHIPPED">배송 중</option>
-          <option value="DELIVERED">배송 완료</option>
-          <option value="CANCELLED">취소됨</option>
-        </select>
+        <SearchInput
+          placeholder="주문 번호, 고객명으로 검색..."
+          paramName="search"
+        />
+        <FilterSelect
+          options={[
+            { value: "PENDING", label: "대기 중" },
+            { value: "CONFIRMED", label: "확인됨" },
+            { value: "PROCESSING", label: "처리 중" },
+            { value: "SHIPPED", label: "배송 중" },
+            { value: "DELIVERED", label: "배송 완료" },
+            { value: "CANCELLED", label: "취소됨" },
+          ]}
+          paramName="status"
+          placeholder="전체 상태"
+        />
       </div>
 
       {/* Orders Table */}
@@ -156,6 +183,16 @@ export default async function OrdersPage() {
           </tbody>
         </table>
       </div>
+
+      {/* Pagination */}
+      {pagination.totalPages > 1 && (
+        <Pagination
+          currentPage={pagination.page || page}
+          totalPages={pagination.totalPages || 1}
+          totalItems={pagination.total || 0}
+          itemsPerPage={pagination.limit || limit}
+        />
+      )}
     </div>
   );
 }

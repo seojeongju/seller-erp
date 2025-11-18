@@ -1,34 +1,56 @@
 "use client";
 
 import { useState } from "react";
-import { useRouter } from "next/navigation";
+import { useRouter, useSearchParams } from "next/navigation";
 import Link from "next/link";
 import { ArrowLeft } from "lucide-react";
+import { apiClientMutation } from "@/lib/api";
 
 export default function NewCustomerPage() {
   const router = useRouter();
+  const searchParams = useSearchParams();
+  const tenant = searchParams.get("tenant");
   const [loading, setLoading] = useState(false);
+  const [error, setError] = useState("");
   const [formData, setFormData] = useState({
     name: "",
     email: "",
     phone: "",
     company: "",
     address: "",
+    city: "",
+    state: "",
+    zipCode: "",
+    country: "",
     notes: "",
   });
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     setLoading(true);
+    setError("");
+
+    // 폼 검증
+    if (!formData.name.trim()) {
+      setError("고객명을 입력해주세요.");
+      setLoading(false);
+      return;
+    }
+    if (!formData.email.trim()) {
+      setError("이메일을 입력해주세요.");
+      setLoading(false);
+      return;
+    }
 
     try {
-      // TODO: API 호출
-      console.log("Creating customer:", formData);
-      alert("고객이 등록되었습니다.");
-      router.push("/dashboard/customers");
-    } catch (error) {
+      await apiClientMutation("/api/customers", "POST", formData);
+      const redirectUrl = tenant 
+        ? `/dashboard/customers?tenant=${tenant}`
+        : "/dashboard/customers";
+      router.push(redirectUrl);
+    } catch (error: any) {
       console.error("Error creating customer:", error);
-      alert("고객 등록에 실패했습니다.");
+      setError(error.message || "고객 등록에 실패했습니다.");
     } finally {
       setLoading(false);
     }
@@ -48,6 +70,13 @@ export default function NewCustomerPage() {
         <h1 className="mt-4 text-3xl font-bold text-gray-900">새 고객 등록</h1>
         <p className="text-gray-600 mt-2">새로운 고객 정보를 입력하세요</p>
       </div>
+
+      {/* Error Message */}
+      {error && (
+        <div className="rounded-lg border border-red-200 bg-red-50 p-4">
+          <p className="text-sm text-red-800">{error}</p>
+        </div>
+      )}
 
       {/* Form */}
       <form onSubmit={handleSubmit} className="max-w-2xl space-y-6">
@@ -119,7 +148,47 @@ export default function NewCustomerPage() {
               value={formData.address}
               onChange={(e) => setFormData({ ...formData, address: e.target.value })}
               className="mt-1 block w-full rounded-md border border-gray-300 px-3 py-2 focus:border-indigo-500 focus:outline-none focus:ring-1 focus:ring-indigo-500"
+              placeholder="상세 주소"
             />
+          </div>
+
+          <div className="grid grid-cols-3 gap-4">
+            <div>
+              <label htmlFor="city" className="block text-sm font-medium text-gray-700">
+                시/도
+              </label>
+              <input
+                type="text"
+                id="city"
+                value={formData.city}
+                onChange={(e) => setFormData({ ...formData, city: e.target.value })}
+                className="mt-1 block w-full rounded-md border border-gray-300 px-3 py-2 focus:border-indigo-500 focus:outline-none focus:ring-1 focus:ring-indigo-500"
+              />
+            </div>
+            <div>
+              <label htmlFor="state" className="block text-sm font-medium text-gray-700">
+                구/군
+              </label>
+              <input
+                type="text"
+                id="state"
+                value={formData.state}
+                onChange={(e) => setFormData({ ...formData, state: e.target.value })}
+                className="mt-1 block w-full rounded-md border border-gray-300 px-3 py-2 focus:border-indigo-500 focus:outline-none focus:ring-1 focus:ring-indigo-500"
+              />
+            </div>
+            <div>
+              <label htmlFor="zipCode" className="block text-sm font-medium text-gray-700">
+                우편번호
+              </label>
+              <input
+                type="text"
+                id="zipCode"
+                value={formData.zipCode}
+                onChange={(e) => setFormData({ ...formData, zipCode: e.target.value })}
+                className="mt-1 block w-full rounded-md border border-gray-300 px-3 py-2 focus:border-indigo-500 focus:outline-none focus:ring-1 focus:ring-indigo-500"
+              />
+            </div>
           </div>
 
           <div>

@@ -1,9 +1,10 @@
 "use client";
 
-import { useState } from "react";
-import { useRouter } from "next/navigation";
+import { useState, useEffect } from "react";
+import { useRouter, useSearchParams } from "next/navigation";
 import Link from "next/link";
 import { ArrowLeft, Plus, X } from "lucide-react";
+import { apiClient, apiClientMutation } from "@/lib/api";
 
 interface OrderItem {
   id: string;
@@ -16,25 +17,36 @@ interface OrderItem {
 
 export default function NewOrderPage() {
   const router = useRouter();
-  const [loading, setLoading] = useState(false);
+  const searchParams = useSearchParams();
+  const tenant = searchParams.get("tenant");
+  const [loading, setLoading] = useState(true);
+  const [saving, setSaving] = useState(false);
+  const [error, setError] = useState("");
   const [customerId, setCustomerId] = useState("");
   const [orderItems, setOrderItems] = useState<OrderItem[]>([]);
+  const [customers, setCustomers] = useState<any[]>([]);
+  const [products, setProducts] = useState<any[]>([]);
 
-  // TODO: API에서 고객 목록, 상품 목록 가져오기
-  const customers = [
-    { id: "1", name: "테스트 고객", email: "customer@test.com" },
-  ];
-
-  const products = [
-    {
-      id: "1",
-      name: "테스트 상품",
-      variants: [
-        { id: "v1", name: "기본 옵션", price: 100000, stock: 10 },
-        { id: "v2", name: "프리미엄 옵션", price: 200000, stock: 5 },
-      ],
-    },
-  ];
+  // API에서 고객 목록, 상품 목록 가져오기
+  useEffect(() => {
+    const loadData = async () => {
+      try {
+        setLoading(true);
+        const [customersData, productsData] = await Promise.all([
+          apiClient<any[]>("/api/customers?page=1&limit=100"),
+          apiClient<any[]>("/api/products?page=1&limit=100"),
+        ]);
+        setCustomers(Array.isArray(customersData) ? customersData : customersData?.data || []);
+        setProducts(Array.isArray(productsData) ? productsData : productsData?.data || []);
+      } catch (error: any) {
+        console.error("Error loading data:", error);
+        setError("데이터를 불러오는데 실패했습니다.");
+      } finally {
+        setLoading(false);
+      }
+    };
+    loadData();
+  }, []);
 
   const addOrderItem = () => {
     const newItem: OrderItem = {
@@ -64,18 +76,29 @@ export default function NewOrderPage() {
   };
 
   const handleVariantChange = (itemId: string, variantId: string) => {
-    // TODO: 실제로는 API에서 variant 정보를 가져와야 함
-    const variant = products[0].variants.find((v) => v.id === variantId);
-    if (variant) {
+    // 모든 상품의 variants를 찾아서 선택된 variant 찾기
+    let foundVariant: any = null;
+    let foundProduct: any = null;
+
+    for (const product of products) {
+      const variant = product.variants?.find((v: any) => v.id === variantId);
+      if (variant) {
+        foundVariant = variant;
+        foundProduct = product;
+        break;
+      }
+    }
+
+    if (foundVariant && foundProduct) {
       setOrderItems(
         orderItems.map((item) => {
           if (item.id === itemId) {
             return {
               ...item,
               variantId,
-              productName: products[0].name,
-              variantName: variant.name,
-              price: variant.price,
+              productName: foundProduct.name,
+              variantName: foundVariant.name,
+              price: foundVariant.price,
             };
           }
           return item;
@@ -91,38 +114,68 @@ export default function NewOrderPage() {
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
+    setSaving(true);
+    setError("");
 
+    // 폼 검증
     if (!customerId) {
-      alert("고객을 선택해주세요.");
+      setError("고객을 선택해주세요.");
+      setSaving(false);
       return;
     }
 
     if (orderItems.length === 0) {
-      alert("최소 하나의 상품을 추가해주세요.");
+      setError("최소 하나의 상품을 추가해주세요.");
+      setSaving(false);
       return;
     }
 
-    setLoading(true);
+    // 모든 아이템이 variantId를 가지고 있는지 확인
+    const invalidItems = orderItems.filter((item) => !item.variantId);
+    if (invalidItems.length > 0) {
+      setError("모든 상품의 옵션을 선택해주세요.");
+      setSaving(false);
+      return;
+    }
 
     try {
-      // TODO: API 호출
-      console.log("Creating order:", { customerId, orderItems });
-      alert("주문이 생성되었습니다.");
-      router.push("/dashboard/orders");
-    } catch (error) {
+      const orderData = {
+        customerId,
+        items: orderItems.map((item) => ({
+          variantId: item.variantId,
+          quantity: item.quantity,
+        })),
+      };
+
+      await apiClientMutation("/api/orders", "POST", orderData);
+      const redirectUrl = tenant 
+        ? `/dashboard/orders?tenant=${tenant}`
+        : "/dashboard/orders";
+      router.push(redirectUrl);
+    } catch (error: any) {
       console.error("Error creating order:", error);
-      alert("주문 생성에 실패했습니다.");
+      setError(error.message || "주문 생성에 실패했습니다.");
     } finally {
-      setLoading(false);
+      setSaving(false);
     }
   };
+
+  if (loading) {
+    return (
+      <div className="space-y-6">
+        <div className="rounded-lg border border-gray-200 bg-white p-12 text-center">
+          <p className="text-gray-500">로딩 중...</p>
+        </div>
+      </div>
+    );
+  }
 
   return (
     <div className="space-y-6">
       {/* Header */}
       <div>
         <Link
-          href="/dashboard/orders"
+          href={tenant ? `/dashboard/orders?tenant=${tenant}` : "/dashboard/orders"}
           className="inline-flex items-center space-x-2 text-sm text-gray-600 hover:text-gray-900"
         >
           <ArrowLeft className="h-4 w-4" />
@@ -131,6 +184,13 @@ export default function NewOrderPage() {
         <h1 className="mt-4 text-3xl font-bold text-gray-900">새 주문 생성</h1>
         <p className="text-gray-600 mt-2">고객 주문 정보를 입력하세요</p>
       </div>
+
+      {/* Error Message */}
+      {error && (
+        <div className="rounded-lg border border-red-200 bg-red-50 p-4">
+          <p className="text-sm text-red-800">{error}</p>
+        </div>
+      )}
 
       {/* Form */}
       <form onSubmit={handleSubmit} className="space-y-6">
@@ -194,12 +254,14 @@ export default function NewOrderPage() {
                         className="mt-1 block w-full rounded-md border border-gray-300 px-3 py-2 text-sm focus:border-indigo-500 focus:outline-none focus:ring-1 focus:ring-indigo-500"
                       >
                         <option value="">선택하세요</option>
-                        {products[0].variants.map((variant) => (
-                          <option key={variant.id} value={variant.id}>
-                            {products[0].name} - {variant.name} (₩
-                            {variant.price.toLocaleString()})
-                          </option>
-                        ))}
+                        {products.map((product) =>
+                          product.variants?.map((variant: any) => (
+                            <option key={variant.id} value={variant.id}>
+                              {product.name} - {variant.name} (₩
+                              {variant.price?.toLocaleString()})
+                            </option>
+                          ))
+                        )}
                       </select>
                     </div>
 
@@ -262,10 +324,10 @@ export default function NewOrderPage() {
           </Link>
           <button
             type="submit"
-            disabled={loading}
+            disabled={saving}
             className="rounded-lg bg-indigo-600 px-4 py-2 text-sm font-medium text-white hover:bg-indigo-700 disabled:opacity-50"
           >
-            {loading ? "생성 중..." : "주문 생성"}
+            {saving ? "생성 중..." : "주문 생성"}
           </button>
         </div>
       </form>

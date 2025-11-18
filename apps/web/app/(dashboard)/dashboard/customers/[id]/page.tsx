@@ -1,67 +1,138 @@
 "use client";
 
-import { useState } from "react";
-import { useRouter } from "next/navigation";
+import { useState, useEffect } from "react";
+import { useRouter, useSearchParams } from "next/navigation";
 import Link from "next/link";
 import { ArrowLeft, Trash2 } from "lucide-react";
+import { apiClient, apiClientMutation } from "@/lib/api";
 
 export default function CustomerDetailPage({ params }: { params: { id: string } }) {
   const router = useRouter();
-  const [loading, setLoading] = useState(false);
+  const searchParams = useSearchParams();
+  const tenant = searchParams.get("tenant");
+  const [loading, setLoading] = useState(true);
+  const [saving, setSaving] = useState(false);
   const [isEditing, setIsEditing] = useState(false);
-
-  // TODO: API에서 고객 데이터 가져오기
+  const [error, setError] = useState("");
   const [formData, setFormData] = useState({
-    name: "테스트 고객",
-    email: "customer@test.com",
-    phone: "010-1234-5678",
-    company: "테스트 고객사",
-    address: "서울시 강남구",
-    notes: "VIP 고객",
+    name: "",
+    email: "",
+    phone: "",
+    company: "",
+    address: "",
+    city: "",
+    state: "",
+    zipCode: "",
+    country: "",
+    notes: "",
   });
+
+  // 고객 데이터 로드
+  useEffect(() => {
+    const loadCustomer = async () => {
+      try {
+        setLoading(true);
+        const customer = await apiClient<any>(`/api/customers/${params.id}`);
+        setFormData({
+          name: customer.name || "",
+          email: customer.email || "",
+          phone: customer.phone || "",
+          company: customer.company || "",
+          address: customer.address || "",
+          city: customer.city || "",
+          state: customer.state || "",
+          zipCode: customer.zipCode || "",
+          country: customer.country || "",
+          notes: customer.notes || "",
+        });
+      } catch (error: any) {
+        console.error("Error loading customer:", error);
+        setError("고객 정보를 불러오는데 실패했습니다.");
+      } finally {
+        setLoading(false);
+      }
+    };
+
+    loadCustomer();
+  }, [params.id]);
 
   const handleUpdate = async (e: React.FormEvent) => {
     e.preventDefault();
-    setLoading(true);
+    setSaving(true);
+    setError("");
+
+    // 폼 검증
+    if (!formData.name.trim()) {
+      setError("고객명을 입력해주세요.");
+      setSaving(false);
+      return;
+    }
+    if (!formData.email.trim()) {
+      setError("이메일을 입력해주세요.");
+      setSaving(false);
+      return;
+    }
 
     try {
-      // TODO: API 호출
-      console.log("Updating customer:", formData);
-      alert("고객 정보가 수정되었습니다.");
+      await apiClientMutation(`/api/customers/${params.id}`, "PATCH", formData);
       setIsEditing(false);
-    } catch (error) {
+      // 데이터 다시 로드
+      const customer = await apiClient<any>(`/api/customers/${params.id}`);
+      setFormData({
+        name: customer.name || "",
+        email: customer.email || "",
+        phone: customer.phone || "",
+        company: customer.company || "",
+        address: customer.address || "",
+        city: customer.city || "",
+        state: customer.state || "",
+        zipCode: customer.zipCode || "",
+        country: customer.country || "",
+        notes: customer.notes || "",
+      });
+    } catch (error: any) {
       console.error("Error updating customer:", error);
-      alert("고객 정보 수정에 실패했습니다.");
+      setError(error.message || "고객 정보 수정에 실패했습니다.");
     } finally {
-      setLoading(false);
+      setSaving(false);
     }
   };
 
   const handleDelete = async () => {
-    if (!confirm("정말 이 고객을 삭제하시겠습니까?")) {
+    if (!confirm("정말 이 고객을 삭제하시겠습니까? 이 작업은 되돌릴 수 없습니다.")) {
       return;
     }
 
-    setLoading(true);
+    setSaving(true);
     try {
-      // TODO: API 호출
-      console.log("Deleting customer:", params.id);
-      alert("고객이 삭제되었습니다.");
-      router.push("/dashboard/customers");
-    } catch (error) {
+      await apiClientMutation(`/api/customers/${params.id}`, "DELETE");
+      const redirectUrl = tenant 
+        ? `/dashboard/customers?tenant=${tenant}`
+        : "/dashboard/customers";
+      router.push(redirectUrl);
+    } catch (error: any) {
       console.error("Error deleting customer:", error);
-      alert("고객 삭제에 실패했습니다.");
-    } finally {
-      setLoading(false);
+      setError(error.message || "고객 삭제에 실패했습니다.");
+      setSaving(false);
     }
   };
+
+  if (loading) {
+    return (
+      <div className="space-y-6">
+        <div className="rounded-lg border border-gray-200 bg-white p-12 text-center">
+          <p className="text-gray-500">로딩 중...</p>
+        </div>
+      </div>
+    );
+  }
 
   return (
     <div className="space-y-6">
       {/* Header */}
       <div>
         <Link
-          href="/dashboard/customers"
+          href={tenant ? `/dashboard/customers?tenant=${tenant}` : "/dashboard/customers"}
           className="inline-flex items-center space-x-2 text-sm text-gray-600 hover:text-gray-900"
         >
           <ArrowLeft className="h-4 w-4" />
@@ -83,7 +154,7 @@ export default function CustomerDetailPage({ params }: { params: { id: string } 
                 </button>
                 <button
                   onClick={handleDelete}
-                  disabled={loading}
+                  disabled={saving}
                   className="rounded-lg border border-red-300 bg-white px-4 py-2 text-sm font-medium text-red-600 hover:bg-red-50 disabled:opacity-50"
                 >
                   <Trash2 className="h-4 w-4" />
@@ -93,6 +164,13 @@ export default function CustomerDetailPage({ params }: { params: { id: string } 
           </div>
         </div>
       </div>
+
+      {/* Error Message */}
+      {error && (
+        <div className="rounded-lg border border-red-200 bg-red-50 p-4">
+          <p className="text-sm text-red-800">{error}</p>
+        </div>
+      )}
 
       {/* Content */}
       <form onSubmit={handleUpdate} className="max-w-2xl space-y-6">
@@ -180,11 +258,63 @@ export default function CustomerDetailPage({ params }: { params: { id: string } 
                 value={formData.address}
                 onChange={(e) => setFormData({ ...formData, address: e.target.value })}
                 className="mt-1 block w-full rounded-md border border-gray-300 px-3 py-2 focus:border-indigo-500 focus:outline-none focus:ring-1 focus:ring-indigo-500"
+                placeholder="상세 주소"
               />
             ) : (
-              <p className="mt-1 text-sm text-gray-900">{formData.address}</p>
+              <p className="mt-1 text-sm text-gray-900">{formData.address || "N/A"}</p>
             )}
           </div>
+
+          {isEditing && (
+            <div className="grid grid-cols-3 gap-4">
+              <div>
+                <label htmlFor="city" className="block text-sm font-medium text-gray-700">
+                  시/도
+                </label>
+                <input
+                  type="text"
+                  id="city"
+                  value={formData.city}
+                  onChange={(e) => setFormData({ ...formData, city: e.target.value })}
+                  className="mt-1 block w-full rounded-md border border-gray-300 px-3 py-2 focus:border-indigo-500 focus:outline-none focus:ring-1 focus:ring-indigo-500"
+                />
+              </div>
+              <div>
+                <label htmlFor="state" className="block text-sm font-medium text-gray-700">
+                  구/군
+                </label>
+                <input
+                  type="text"
+                  id="state"
+                  value={formData.state}
+                  onChange={(e) => setFormData({ ...formData, state: e.target.value })}
+                  className="mt-1 block w-full rounded-md border border-gray-300 px-3 py-2 focus:border-indigo-500 focus:outline-none focus:ring-1 focus:ring-indigo-500"
+                />
+              </div>
+              <div>
+                <label htmlFor="zipCode" className="block text-sm font-medium text-gray-700">
+                  우편번호
+                </label>
+                <input
+                  type="text"
+                  id="zipCode"
+                  value={formData.zipCode}
+                  onChange={(e) => setFormData({ ...formData, zipCode: e.target.value })}
+                  className="mt-1 block w-full rounded-md border border-gray-300 px-3 py-2 focus:border-indigo-500 focus:outline-none focus:ring-1 focus:ring-indigo-500"
+                />
+              </div>
+            </div>
+          )}
+          {!isEditing && (formData.city || formData.state || formData.zipCode) && (
+            <div>
+              <label className="block text-sm font-medium text-gray-700">
+                상세 주소
+              </label>
+              <p className="mt-1 text-sm text-gray-900">
+                {[formData.city, formData.state, formData.zipCode].filter(Boolean).join(" ")}
+              </p>
+            </div>
+          )}
 
           <div>
             <label htmlFor="notes" className="block text-sm font-medium text-gray-700">
@@ -216,10 +346,10 @@ export default function CustomerDetailPage({ params }: { params: { id: string } 
             </button>
             <button
               type="submit"
-              disabled={loading}
+              disabled={saving}
               className="rounded-lg bg-indigo-600 px-4 py-2 text-sm font-medium text-white hover:bg-indigo-700 disabled:opacity-50"
             >
-              {loading ? "저장 중..." : "저장"}
+              {saving ? "저장 중..." : "저장"}
             </button>
           </div>
         )}

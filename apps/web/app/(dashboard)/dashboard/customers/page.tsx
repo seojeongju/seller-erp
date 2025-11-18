@@ -1,19 +1,45 @@
 import Link from "next/link";
-import { Plus, Search } from "lucide-react";
+import { Plus } from "lucide-react";
 import { apiServer } from "@/lib/api";
+import { SearchInput } from "@/components/common/search-input";
+import { Pagination } from "@/components/common/pagination";
 
-export default async function CustomersPage() {
+interface CustomersPageProps {
+  searchParams: {
+    page?: string;
+    search?: string;
+  };
+}
+
+export default async function CustomersPage({ searchParams }: CustomersPageProps) {
+  // URL 파라미터에서 검색 조건 추출
+  const page = parseInt(searchParams.page || "1", 10);
+  const limit = 10;
+  const search = searchParams.search || "";
+
+  // API 쿼리 파라미터 구성
+  const queryParams = new URLSearchParams({
+    page: page.toString(),
+    limit: limit.toString(),
+  });
+  if (search) queryParams.set("search", search);
+
   // API에서 고객 목록 가져오기
   let customers: any[] = [];
-  let pagination: any = null;
+  let pagination: any = {
+    page: 1,
+    limit: 10,
+    total: 0,
+    totalPages: 1,
+  };
 
   try {
-    const response = await apiServer<{ data: any[]; pagination: any }>("/api/customers?page=1&limit=100");
-    if (Array.isArray(response)) {
-      customers = response;
-    } else if (response?.data) {
+    const response = await apiServer<{ data: any[]; pagination: any }>(
+      `/api/customers?${queryParams.toString()}`
+    );
+    if (response?.data) {
       customers = response.data;
-      pagination = response.pagination;
+      pagination = response.pagination || pagination;
     }
   } catch (error) {
     console.error("Error fetching customers:", error);
@@ -39,16 +65,10 @@ export default async function CustomersPage() {
 
       {/* Search */}
       <div className="flex items-center space-x-4">
-        <div className="flex-1">
-          <div className="relative">
-            <Search className="absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-gray-400" />
-            <input
-              type="text"
-              placeholder="고객명, 이메일, 전화번호로 검색..."
-              className="w-full rounded-lg border border-gray-300 py-2 pl-10 pr-4 text-sm focus:border-indigo-500 focus:outline-none focus:ring-1 focus:ring-indigo-500"
-            />
-          </div>
-        </div>
+        <SearchInput
+          placeholder="고객명, 이메일, 전화번호로 검색..."
+          paramName="search"
+        />
       </div>
 
       {/* Customers Table */}
@@ -123,6 +143,16 @@ export default async function CustomersPage() {
           </tbody>
         </table>
       </div>
+
+      {/* Pagination */}
+      {pagination.totalPages > 1 && (
+        <Pagination
+          currentPage={pagination.page || page}
+          totalPages={pagination.totalPages || 1}
+          totalItems={pagination.total || 0}
+          itemsPerPage={pagination.limit || limit}
+        />
+      )}
     </div>
   );
 }

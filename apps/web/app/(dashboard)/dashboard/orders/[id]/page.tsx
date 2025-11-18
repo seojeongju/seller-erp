@@ -1,9 +1,10 @@
 "use client";
 
-import { useState } from "react";
-import { useRouter } from "next/navigation";
+import { useState, useEffect } from "react";
+import { useRouter, useSearchParams } from "next/navigation";
 import Link from "next/link";
 import { ArrowLeft, Package } from "lucide-react";
+import { apiClient, apiClientMutation } from "@/lib/api";
 
 const statusColors: Record<string, string> = {
   PENDING: "bg-yellow-100 text-yellow-800",
@@ -25,61 +26,78 @@ const statusLabels: Record<string, string> = {
 
 export default function OrderDetailPage({ params }: { params: { id: string } }) {
   const router = useRouter();
-  const [loading, setLoading] = useState(false);
-  const [status, setStatus] = useState("PENDING");
+  const searchParams = useSearchParams();
+  const tenant = searchParams.get("tenant");
+  const [loading, setLoading] = useState(true);
+  const [saving, setSaving] = useState(false);
+  const [error, setError] = useState("");
+  const [order, setOrder] = useState<any>(null);
 
-  // TODO: API에서 주문 데이터 가져오기
-  const order = {
-    id: params.id,
-    orderNumber: "ORD-2024-001",
-    status: "PENDING",
-    totalAmount: 300000,
-    createdAt: new Date(),
-    customer: {
-      name: "테스트 고객",
-      email: "customer@test.com",
-      phone: "010-1234-5678",
-    },
-    items: [
-      {
-        id: "1",
-        productName: "테스트 상품",
-        variantName: "기본 옵션",
-        quantity: 2,
-        price: 100000,
-      },
-      {
-        id: "2",
-        productName: "테스트 상품",
-        variantName: "프리미엄 옵션",
-        quantity: 1,
-        price: 100000,
-      },
-    ],
-  };
+  // 주문 데이터 로드
+  useEffect(() => {
+    const loadOrder = async () => {
+      try {
+        setLoading(true);
+        const orderData = await apiClient<any>(`/api/orders/${params.id}`);
+        setOrder(orderData);
+      } catch (error: any) {
+        console.error("Error loading order:", error);
+        setError("주문 정보를 불러오는데 실패했습니다.");
+      } finally {
+        setLoading(false);
+      }
+    };
+
+    loadOrder();
+  }, [params.id]);
 
   const handleStatusChange = async (newStatus: string) => {
-    setLoading(true);
+    setSaving(true);
+    setError("");
 
     try {
-      // TODO: API 호출
-      console.log("Updating order status:", { orderId: params.id, status: newStatus });
-      setStatus(newStatus);
-      alert("주문 상태가 변경되었습니다.");
-    } catch (error) {
+      await apiClientMutation(`/api/orders/${params.id}/status`, "PATCH", {
+        status: newStatus,
+      });
+      // 주문 데이터 다시 로드
+      const orderData = await apiClient<any>(`/api/orders/${params.id}`);
+      setOrder(orderData);
+    } catch (error: any) {
       console.error("Error updating order status:", error);
-      alert("주문 상태 변경에 실패했습니다.");
+      setError(error.message || "주문 상태 변경에 실패했습니다.");
     } finally {
-      setLoading(false);
+      setSaving(false);
     }
   };
+
+  if (loading) {
+    return (
+      <div className="space-y-6">
+        <div className="rounded-lg border border-gray-200 bg-white p-12 text-center">
+          <p className="text-gray-500">로딩 중...</p>
+        </div>
+      </div>
+    );
+  }
+
+  if (!order) {
+    return (
+      <div className="space-y-6">
+        <div className="rounded-lg border border-red-200 bg-red-50 p-4">
+          <p className="text-sm text-red-800">
+            {error || "주문을 찾을 수 없습니다."}
+          </p>
+        </div>
+      </div>
+    );
+  }
 
   return (
     <div className="space-y-6">
       {/* Header */}
       <div>
         <Link
-          href="/dashboard/orders"
+          href={tenant ? `/dashboard/orders?tenant=${tenant}` : "/dashboard/orders"}
           className="inline-flex items-center space-x-2 text-sm text-gray-600 hover:text-gray-900"
         >
           <ArrowLeft className="h-4 w-4" />
@@ -92,13 +110,20 @@ export default function OrderDetailPage({ params }: { params: { id: string } }) 
           </div>
           <span
             className={`inline-flex rounded-full px-3 py-1 text-sm font-semibold ${
-              statusColors[status]
+              statusColors[order.status]
             }`}
           >
-            {statusLabels[status]}
+            {statusLabels[order.status]}
           </span>
         </div>
       </div>
+
+      {/* Error Message */}
+      {error && (
+        <div className="rounded-lg border border-red-200 bg-red-50 p-4">
+          <p className="text-sm text-red-800">{error}</p>
+        </div>
+      )}
 
       <div className="grid grid-cols-1 gap-6 lg:grid-cols-3">
         {/* Main Content */}
@@ -110,24 +135,26 @@ export default function OrderDetailPage({ params }: { params: { id: string } }) 
               <span>주문 상품</span>
             </h2>
             <div className="space-y-4">
-              {order.items.map((item) => (
+              {order.items?.map((item: any) => (
                 <div
                   key={item.id}
                   className="flex items-center justify-between border-b border-gray-100 pb-4 last:border-0 last:pb-0"
                 >
                   <div>
                     <div className="text-sm font-medium text-gray-900">
-                      {item.productName}
+                      {item.variant?.product?.name || item.productName || "상품명 없음"}
                     </div>
-                    <div className="text-sm text-gray-500">{item.variantName}</div>
+                    <div className="text-sm text-gray-500">
+                      {item.variant?.name || item.variantName || "옵션 없음"}
+                    </div>
                     <div className="text-sm text-gray-500">수량: {item.quantity}</div>
                   </div>
                   <div className="text-right">
                     <div className="text-sm font-medium text-gray-900">
-                      ₩{(item.price * item.quantity).toLocaleString()}
+                      ₩{((item.price || item.variant?.price || 0) * item.quantity).toLocaleString()}
                     </div>
                     <div className="text-xs text-gray-500">
-                      단가: ₩{item.price.toLocaleString()}
+                      단가: ₩{(item.price || item.variant?.price || 0).toLocaleString()}
                     </div>
                   </div>
                 </div>
@@ -151,9 +178,9 @@ export default function OrderDetailPage({ params }: { params: { id: string } }) 
                 <button
                   key={key}
                   onClick={() => handleStatusChange(key)}
-                  disabled={loading || status === key}
+                  disabled={saving || order.status === key}
                   className={`rounded-lg px-4 py-2 text-sm font-medium transition-colors ${
-                    status === key
+                    order.status === key
                       ? "bg-indigo-600 text-white"
                       : "border border-gray-300 text-gray-700 hover:bg-gray-50"
                   } disabled:opacity-50`}
@@ -173,15 +200,15 @@ export default function OrderDetailPage({ params }: { params: { id: string } }) 
             <div className="space-y-3">
               <div>
                 <div className="text-sm text-gray-500">고객명</div>
-                <div className="text-sm font-medium text-gray-900">{order.customer.name}</div>
+                <div className="text-sm font-medium text-gray-900">{order.customer?.name || "N/A"}</div>
               </div>
               <div>
                 <div className="text-sm text-gray-500">이메일</div>
-                <div className="text-sm font-medium text-gray-900">{order.customer.email}</div>
+                <div className="text-sm font-medium text-gray-900">{order.customer?.email || "N/A"}</div>
               </div>
               <div>
                 <div className="text-sm text-gray-500">전화번호</div>
-                <div className="text-sm font-medium text-gray-900">{order.customer.phone}</div>
+                <div className="text-sm font-medium text-gray-900">{order.customer?.phone || "N/A"}</div>
               </div>
             </div>
           </div>

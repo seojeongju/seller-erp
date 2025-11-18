@@ -1,6 +1,9 @@
 import Link from "next/link";
-import { Search, AlertCircle } from "lucide-react";
+import { AlertCircle } from "lucide-react";
 import { apiServer } from "@/lib/api";
+import { SearchInput } from "@/components/common/search-input";
+import { FilterSelect } from "@/components/common/filter-select";
+import { Pagination } from "@/components/common/pagination";
 
 const statusColors: Record<string, string> = {
   IN_STOCK: "bg-green-100 text-green-800",
@@ -16,12 +19,33 @@ const statusLabels: Record<string, string> = {
   RESERVED: "예약됨",
 };
 
-export default async function InventoryPage() {
+interface InventoryPageProps {
+  searchParams: {
+    page?: string;
+    search?: string;
+    status?: string;
+  };
+}
+
+export default async function InventoryPage({ searchParams }: InventoryPageProps) {
+  // URL 파라미터에서 검색 조건 추출
+  const page = parseInt(searchParams.page || "1", 10);
+  const limit = 10;
+  const search = searchParams.search || "";
+  const status = searchParams.status || "";
+
+  // API 쿼리 파라미터 구성
+  const queryParams = new URLSearchParams();
+  if (status) queryParams.set("status", status);
+  if (search) queryParams.set("search", search);
+
   // API에서 재고 목록 가져오기
   let inventoryItems: any[] = [];
 
   try {
-    const response: any = await apiServer<any>("/api/inventory/items");
+    const response: any = await apiServer<any>(
+      `/api/inventory/items${queryParams.toString() ? `?${queryParams.toString()}` : ""}`
+    );
     if (Array.isArray(response)) {
       inventoryItems = response;
     } else if (response?.data && Array.isArray(response.data)) {
@@ -76,23 +100,20 @@ export default async function InventoryPage() {
 
       {/* Search and Filters */}
       <div className="flex items-center space-x-4">
-        <div className="flex-1">
-          <div className="relative">
-            <Search className="absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-gray-400" />
-            <input
-              type="text"
-              placeholder="상품명, SKU, 시리얼 번호로 검색..."
-              className="w-full rounded-lg border border-gray-300 py-2 pl-10 pr-4 text-sm focus:border-indigo-500 focus:outline-none focus:ring-1 focus:ring-indigo-500"
-            />
-          </div>
-        </div>
-        <select className="rounded-lg border border-gray-300 px-4 py-2 text-sm focus:border-indigo-500 focus:outline-none focus:ring-1 focus:ring-indigo-500">
-          <option value="">전체 상태</option>
-          <option value="IN_STOCK">재고 있음</option>
-          <option value="LOW_STOCK">재고 부족</option>
-          <option value="OUT_OF_STOCK">품절</option>
-          <option value="RESERVED">예약됨</option>
-        </select>
+        <SearchInput
+          placeholder="상품명, SKU, 시리얼 번호로 검색..."
+          paramName="search"
+        />
+        <FilterSelect
+          options={[
+            { value: "IN_STOCK", label: "재고 있음" },
+            { value: "LOW_STOCK", label: "재고 부족" },
+            { value: "OUT_OF_STOCK", label: "품절" },
+            { value: "RESERVED", label: "예약됨" },
+          ]}
+          paramName="status"
+          placeholder="전체 상태"
+        />
       </div>
 
       {/* Inventory Table */}
@@ -176,6 +197,16 @@ export default async function InventoryPage() {
           </tbody>
         </table>
       </div>
+
+      {/* Pagination - 재고는 페이지네이션이 필요할 수 있으므로 추가 */}
+      {inventoryItems.length > limit && (
+        <Pagination
+          currentPage={page}
+          totalPages={Math.ceil(inventoryItems.length / limit)}
+          totalItems={inventoryItems.length}
+          itemsPerPage={limit}
+        />
+      )}
     </div>
   );
 }

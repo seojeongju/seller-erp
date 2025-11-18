@@ -1,9 +1,10 @@
 "use client";
 
-import { useState } from "react";
-import { useRouter } from "next/navigation";
+import { useState, useEffect } from "react";
+import { useRouter, useSearchParams } from "next/navigation";
 import Link from "next/link";
 import { ArrowLeft, Plus, Minus, RotateCcw } from "lucide-react";
+import { apiClient, apiClientMutation } from "@/lib/api";
 
 interface StockAdjustment {
   id: string;
@@ -15,75 +16,65 @@ interface StockAdjustment {
 
 export default function InventoryDetailPage({ params }: { params: { id: string } }) {
   const router = useRouter();
-  const [loading, setLoading] = useState(false);
+  const searchParams = useSearchParams();
+  const tenant = searchParams.get("tenant");
+  const [loading, setLoading] = useState(true);
+  const [saving, setSaving] = useState(false);
+  const [error, setError] = useState("");
   const [showAdjustModal, setShowAdjustModal] = useState(false);
   const [adjustmentType, setAdjustmentType] = useState<"IN" | "OUT" | "ADJUST">("IN");
   const [adjustmentQuantity, setAdjustmentQuantity] = useState(1);
   const [adjustmentReason, setAdjustmentReason] = useState("");
+  const [inventory, setInventory] = useState<any>(null);
 
-  // TODO: API에서 재고 데이터 가져오기
-  const inventory = {
-    id: params.id,
-    productName: "테스트 상품",
-    variantName: "기본 옵션",
-    sku: "PROD-001-V1",
-    currentStock: 50,
-    reorderPoint: 10,
-    serialNumber: "SN-12345",
-    history: [
-      {
-        id: "1",
-        type: "IN" as const,
-        quantity: 100,
-        reason: "초기 입고",
-        createdAt: new Date("2024-01-15"),
-      },
-      {
-        id: "2",
-        type: "OUT" as const,
-        quantity: -30,
-        reason: "주문 출고 (ORD-001)",
-        createdAt: new Date("2024-01-20"),
-      },
-      {
-        id: "3",
-        type: "OUT" as const,
-        quantity: -20,
-        reason: "주문 출고 (ORD-002)",
-        createdAt: new Date("2024-01-25"),
-      },
-    ],
-  };
+  // 재고 데이터 로드
+  useEffect(() => {
+    const loadInventory = async () => {
+      try {
+        setLoading(true);
+        const inventoryData = await apiClient<any>(`/api/inventory/items/${params.id}`);
+        setInventory(inventoryData);
+      } catch (error: any) {
+        console.error("Error loading inventory:", error);
+        setError("재고 정보를 불러오는데 실패했습니다.");
+      } finally {
+        setLoading(false);
+      }
+    };
+
+    loadInventory();
+  }, [params.id]);
 
   const handleAdjustStock = async () => {
     if (!adjustmentReason.trim()) {
-      alert("조정 사유를 입력해주세요.");
+      setError("조정 사유를 입력해주세요.");
       return;
     }
 
-    setLoading(true);
+    setSaving(true);
+    setError("");
 
     try {
-      // TODO: API 호출
       const adjustment = {
-        inventoryId: params.id,
+        inventoryItemId: params.id,
         type: adjustmentType,
         quantity:
           adjustmentType === "OUT" ? -adjustmentQuantity : adjustmentQuantity,
         reason: adjustmentReason,
       };
 
-      console.log("Adjusting stock:", adjustment);
-      alert("재고가 조정되었습니다.");
+      await apiClientMutation("/api/inventory/adjust", "POST", adjustment);
       setShowAdjustModal(false);
       setAdjustmentQuantity(1);
       setAdjustmentReason("");
-      // router.refresh(); // 실제로는 데이터를 다시 가져와야 함
-    } catch (error) {
+      // 데이터 다시 로드
+      const inventoryData = await apiClient<any>(`/api/inventory/items/${params.id}`);
+      setInventory(inventoryData);
+    } catch (error: any) {
       console.error("Error adjusting stock:", error);
-      alert("재고 조정에 실패했습니다.");
+      setError(error.message || "재고 조정에 실패했습니다.");
     } finally {
-      setLoading(false);
+      setSaving(false);
     }
   };
 
@@ -99,6 +90,28 @@ export default function InventoryDetailPage({ params }: { params: { id: string }
         return type;
     }
   };
+
+  if (loading) {
+    return (
+      <div className="space-y-6">
+        <div className="rounded-lg border border-gray-200 bg-white p-12 text-center">
+          <p className="text-gray-500">로딩 중...</p>
+        </div>
+      </div>
+    );
+  }
+
+  if (!inventory) {
+    return (
+      <div className="space-y-6">
+        <div className="rounded-lg border border-red-200 bg-red-50 p-4">
+          <p className="text-sm text-red-800">
+            {error || "재고 정보를 찾을 수 없습니다."}
+          </p>
+        </div>
+      </div>
+    );
+  }
 
   const getTypeBadgeColor = (type: string) => {
     switch (type) {
@@ -118,7 +131,7 @@ export default function InventoryDetailPage({ params }: { params: { id: string }
       {/* Header */}
       <div>
         <Link
-          href="/dashboard/inventory"
+          href={tenant ? `/dashboard/inventory?tenant=${tenant}` : "/dashboard/inventory"}
           className="inline-flex items-center space-x-2 text-sm text-gray-600 hover:text-gray-900"
         >
           <ArrowLeft className="h-4 w-4" />
@@ -131,12 +144,20 @@ export default function InventoryDetailPage({ params }: { params: { id: string }
           </div>
           <button
             onClick={() => setShowAdjustModal(true)}
-            className="rounded-lg bg-indigo-600 px-4 py-2 text-sm font-medium text-white hover:bg-indigo-700"
+            disabled={saving}
+            className="rounded-lg bg-indigo-600 px-4 py-2 text-sm font-medium text-white hover:bg-indigo-700 disabled:opacity-50"
           >
             재고 조정
           </button>
         </div>
       </div>
+
+      {/* Error Message */}
+      {error && (
+        <div className="rounded-lg border border-red-200 bg-red-50 p-4">
+          <p className="text-sm text-red-800">{error}</p>
+        </div>
+      )}
 
       <div className="grid grid-cols-1 gap-6 lg:grid-cols-3">
         {/* Main Content */}
@@ -149,7 +170,7 @@ export default function InventoryDetailPage({ params }: { params: { id: string }
             </h2>
 
             <div className="space-y-4">
-              {inventory.history.map((item) => (
+              {inventory.history?.map((item: any) => (
                 <div
                   key={item.id}
                   className="flex items-center justify-between border-b border-gray-100 pb-4 last:border-0 last:pb-0"
@@ -190,13 +211,13 @@ export default function InventoryDetailPage({ params }: { params: { id: string }
             <h2 className="text-lg font-semibold text-gray-900 mb-4">현재 재고</h2>
             <div className="text-center">
               <div className="text-4xl font-bold text-indigo-600">
-                {inventory.currentStock}
+                {inventory.quantity || 0}
               </div>
               <div className="text-sm text-gray-500 mt-1">개</div>
-              {inventory.currentStock <= inventory.reorderPoint && (
+              {inventory.variant?.reorderPoint && inventory.quantity <= inventory.variant.reorderPoint && (
                 <div className="mt-4 rounded-lg bg-yellow-50 p-3">
                   <p className="text-xs text-yellow-800">
-                    ⚠️ 재주문 필요 (최소 재고: {inventory.reorderPoint})
+                    ⚠️ 재주문 필요 (최소 재고: {inventory.variant.reorderPoint})
                   </p>
                 </div>
               )}
@@ -210,18 +231,20 @@ export default function InventoryDetailPage({ params }: { params: { id: string }
               <div>
                 <div className="text-sm text-gray-500">상품명</div>
                 <div className="text-sm font-medium text-gray-900">
-                  {inventory.productName}
+                  {inventory.variant?.product?.name || "N/A"}
                 </div>
               </div>
               <div>
                 <div className="text-sm text-gray-500">옵션</div>
                 <div className="text-sm font-medium text-gray-900">
-                  {inventory.variantName}
+                  {inventory.variant?.name || "N/A"}
                 </div>
               </div>
               <div>
                 <div className="text-sm text-gray-500">SKU</div>
-                <div className="text-sm font-medium text-gray-900">{inventory.sku}</div>
+                <div className="text-sm font-medium text-gray-900">
+                  {inventory.variant?.sku || "N/A"}
+                </div>
               </div>
               {inventory.serialNumber && (
                 <div>
@@ -320,15 +343,15 @@ export default function InventoryDetailPage({ params }: { params: { id: string }
                 <div className="flex items-center justify-between">
                   <span className="text-sm text-gray-600">현재 재고:</span>
                   <span className="text-sm font-medium text-gray-900">
-                    {inventory.currentStock}개
+                    {inventory.quantity || 0}개
                   </span>
                 </div>
                 <div className="flex items-center justify-between mt-2">
                   <span className="text-sm text-gray-600">조정 후:</span>
                   <span className="text-sm font-bold text-indigo-600">
                     {adjustmentType === "OUT"
-                      ? inventory.currentStock - adjustmentQuantity
-                      : inventory.currentStock + adjustmentQuantity}
+                      ? (inventory.quantity || 0) - adjustmentQuantity
+                      : (inventory.quantity || 0) + adjustmentQuantity}
                     개
                   </span>
                 </div>
@@ -345,7 +368,7 @@ export default function InventoryDetailPage({ params }: { params: { id: string }
               </button>
               <button
                 onClick={handleAdjustStock}
-                disabled={loading}
+                  disabled={saving}
                 className="rounded-lg bg-indigo-600 px-4 py-2 text-sm font-medium text-white hover:bg-indigo-700 disabled:opacity-50"
               >
                 {loading ? "처리 중..." : "재고 조정"}
