@@ -17,19 +17,19 @@ export default async function DashboardPage() {
 
     // 병렬로 데이터 가져오기 (에러 발생 시 기본값 반환)
     const [kpis, recentOrders, salesTrend, topProducts] = await Promise.all([
-      apiServer("/api/dashboard/kpis").catch((err) => {
+      apiServer<any>("/api/dashboard/kpis").catch((err) => {
         console.error("Error fetching KPIs:", err);
         return null;
       }),
-      apiServer("/api/dashboard/recent-orders?limit=10").catch((err) => {
+      apiServer<any[]>("/api/dashboard/recent-orders?limit=10").catch((err) => {
         console.error("Error fetching recent orders:", err);
         return [];
       }),
-      apiServer("/api/dashboard/sales-trend?days=30").catch((err) => {
+      apiServer<any>("/api/dashboard/sales-trend?days=30").catch((err) => {
         console.error("Error fetching sales trend:", err);
         return { dates: [], sales: [] };
       }),
-      apiServer("/api/dashboard/top-products?limit=5").catch((err) => {
+      apiServer<any[]>("/api/dashboard/top-products?limit=5").catch((err) => {
         console.error("Error fetching top products:", err);
         return [];
       }),
