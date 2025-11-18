@@ -1,0 +1,5 @@
+
+
+seller-erp-production.up.railway.app
+
+postgres-production-dfcb.up.railway.app
