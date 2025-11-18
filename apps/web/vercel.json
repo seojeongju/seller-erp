@@ -1,6 +1,6 @@
 {
   "buildCommand": "cd ../.. && pnpm --filter @seller-erp/db db:generate && cd apps/web && pnpm build",
-  "installCommand": "npm install -g pnpm@9.15.0 && pnpm install",
+  "installCommand": "npm install -g pnpm@9.15.0 && pnpm install --no-frozen-lockfile",
   "framework": "nextjs",
   "regions": ["icn1"]
 }
