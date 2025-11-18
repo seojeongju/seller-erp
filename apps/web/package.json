@@ -5,7 +5,7 @@
   "scripts": {
     "dev": "next dev -p 3000",
     "build": "next build",
-    "build:vercel": "cd ../.. && npm install --legacy-peer-deps && cd packages/db && npm install --legacy-peer-deps && npx prisma generate && cd ../../apps/web && npm run build",
+    "build:vercel": "cd ../.. && npm install --legacy-peer-deps && cd packages/db && npm install --legacy-peer-deps && ./node_modules/.bin/prisma generate && cd ../../apps/web && npm run build",
     "start": "next start",
     "lint": "next lint"
   },
