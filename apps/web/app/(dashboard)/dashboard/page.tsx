@@ -1,6 +1,6 @@
 import { redirect } from "next/navigation";
 import { getServerSession } from "next-auth";
-import { authOptions } from "@/app/api/auth/[...nextauth]/route";
+import { authOptions } from "@/lib/auth-options";
 import { apiServer } from "@/lib/api";
 import { KPICards } from "@/components/dashboard/kpi-cards";
 import { RecentOrders } from "@/components/dashboard/recent-orders";
