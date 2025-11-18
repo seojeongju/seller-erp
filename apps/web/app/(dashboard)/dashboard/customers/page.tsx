@@ -1,9 +1,24 @@
 import Link from "next/link";
 import { Plus, Search } from "lucide-react";
+import { apiServer } from "@/lib/api";
 
 export default async function CustomersPage() {
-  // TODO: API에서 고객 목록 가져오기
-  const customers: any[] = [];
+  // API에서 고객 목록 가져오기
+  let customers: any[] = [];
+  let pagination: any = null;
+
+  try {
+    const response = await apiServer<{ data: any[]; pagination: any }>("/api/customers?page=1&limit=100");
+    if (Array.isArray(response)) {
+      customers = response;
+    } else if (response?.data) {
+      customers = response.data;
+      pagination = response.pagination;
+    }
+  } catch (error) {
+    console.error("Error fetching customers:", error);
+    customers = [];
+  }
 
   return (
     <div className="space-y-6">

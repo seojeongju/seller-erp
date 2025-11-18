@@ -1,5 +1,6 @@
 import Link from "next/link";
 import { Search, AlertCircle } from "lucide-react";
+import { apiServer } from "@/lib/api";
 
 const statusColors: Record<string, string> = {
   IN_STOCK: "bg-green-100 text-green-800",
@@ -16,8 +17,26 @@ const statusLabels: Record<string, string> = {
 };
 
 export default async function InventoryPage() {
-  // TODO: API에서 재고 목록 가져오기
-  const inventoryItems: any[] = [];
+  // API에서 재고 목록 가져오기
+  let inventoryItems: any[] = [];
+
+  try {
+    const response = await apiServer<any[]>("/api/inventory/items");
+    if (Array.isArray(response)) {
+      inventoryItems = response;
+    } else if (response?.data) {
+      inventoryItems = response.data;
+    }
+  } catch (error) {
+    console.error("Error fetching inventory items:", error);
+    inventoryItems = [];
+  }
+
+  // 통계 계산
+  const totalQuantity = inventoryItems.reduce((sum, item) => sum + (item.quantity || 0), 0);
+  const inStockCount = inventoryItems.filter((item) => item.status === "IN_STOCK").length;
+  const lowStockCount = inventoryItems.filter((item) => item.status === "LOW_STOCK").length;
+  const outOfStockCount = inventoryItems.filter((item) => item.status === "OUT_OF_STOCK").length;
 
   return (
     <div className="space-y-6">
@@ -33,25 +52,25 @@ export default async function InventoryPage() {
       <div className="grid grid-cols-1 gap-4 sm:grid-cols-4">
         <div className="rounded-lg border border-gray-200 bg-white p-4">
           <div className="text-sm text-gray-500">총 재고 수량</div>
-          <div className="mt-1 text-2xl font-bold text-gray-900">0</div>
+          <div className="mt-1 text-2xl font-bold text-gray-900">{totalQuantity}</div>
         </div>
         <div className="rounded-lg border border-gray-200 bg-white p-4">
           <div className="text-sm text-gray-500">재고 있음</div>
-          <div className="mt-1 text-2xl font-bold text-green-600">0</div>
+          <div className="mt-1 text-2xl font-bold text-green-600">{inStockCount}</div>
         </div>
         <div className="rounded-lg border border-yellow-200 bg-yellow-50 p-4">
           <div className="flex items-center space-x-2 text-sm text-yellow-700">
             <AlertCircle className="h-4 w-4" />
             <span>재고 부족</span>
           </div>
-          <div className="mt-1 text-2xl font-bold text-yellow-700">0</div>
+          <div className="mt-1 text-2xl font-bold text-yellow-700">{lowStockCount}</div>
         </div>
         <div className="rounded-lg border border-red-200 bg-red-50 p-4">
           <div className="flex items-center space-x-2 text-sm text-red-700">
             <AlertCircle className="h-4 w-4" />
             <span>품절</span>
           </div>
-          <div className="mt-1 text-2xl font-bold text-red-700">0</div>
+          <div className="mt-1 text-2xl font-bold text-red-700">{outOfStockCount}</div>
         </div>
       </div>
 

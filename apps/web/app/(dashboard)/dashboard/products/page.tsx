@@ -1,9 +1,36 @@
 import Link from "next/link";
 import { Plus, Search } from "lucide-react";
+import { apiServer } from "@/lib/api";
 
 export default async function ProductsPage() {
-  // TODO: API에서 상품 목록 가져오기
-  const products: any[] = [];
+  // API에서 상품 목록 가져오기
+  let products: any[] = [];
+  let pagination: any = null;
+
+  try {
+    const response = await apiServer<{ data: any[]; pagination: any }>("/api/products?page=1&limit=100");
+    if (Array.isArray(response)) {
+      products = response;
+    } else if (response?.data) {
+      products = response.data;
+      pagination = response.pagination;
+    }
+  } catch (error) {
+    console.error("Error fetching products:", error);
+    products = [];
+  }
+
+  // 각 상품의 총 재고 수량 계산
+  const productsWithQuantity = products.map((product) => {
+    const totalQuantity = product.variants?.reduce(
+      (sum: number, variant: any) => sum + (variant.quantity || 0),
+      0
+    ) || 0;
+    return {
+      ...product,
+      totalQuantity,
+    };
+  });
 
   return (
     <div className="space-y-6">
@@ -83,7 +110,7 @@ export default async function ProductsPage() {
                 </td>
               </tr>
             ) : (
-              products.map((product: any) => (
+              productsWithQuantity.map((product: any) => (
                 <tr key={product.id} className="hover:bg-gray-50">
                   <td className="whitespace-nowrap px-6 py-4">
                     <div className="text-sm font-medium text-gray-900">{product.name}</div>

@@ -1,5 +1,6 @@
 import Link from "next/link";
 import { Plus, Search } from "lucide-react";
+import { apiServer } from "@/lib/api";
 
 const statusColors: Record<string, string> = {
   PENDING: "bg-yellow-100 text-yellow-800",
@@ -20,8 +21,22 @@ const statusLabels: Record<string, string> = {
 };
 
 export default async function OrdersPage() {
-  // TODO: API에서 주문 목록 가져오기
-  const orders: any[] = [];
+  // API에서 주문 목록 가져오기
+  let orders: any[] = [];
+  let pagination: any = null;
+
+  try {
+    const response = await apiServer<{ data: any[]; pagination: any }>("/api/orders?page=1&limit=100");
+    if (Array.isArray(response)) {
+      orders = response;
+    } else if (response?.data) {
+      orders = response.data;
+      pagination = response.pagination;
+    }
+  } catch (error) {
+    console.error("Error fetching orders:", error);
+    orders = [];
+  }
 
   return (
     <div className="space-y-6">
