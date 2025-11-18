@@ -1,34 +1,54 @@
 "use client";
 
 import { useState } from "react";
-import { useRouter } from "next/navigation";
+import { useRouter, useSearchParams } from "next/navigation";
 import Link from "next/link";
 import { ArrowLeft } from "lucide-react";
+import { apiClientMutation } from "@/lib/api";
 
 export default function NewProductPage() {
   const router = useRouter();
+  const searchParams = useSearchParams();
+  const tenant = searchParams.get("tenant");
   const [loading, setLoading] = useState(false);
+  const [error, setError] = useState("");
   const [formData, setFormData] = useState({
     name: "",
     sku: "",
     description: "",
     category: "",
     brand: "",
+    imageUrls: [] as string[],
   });
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     setLoading(true);
+    setError("");
+
+    // 폼 검증
+    if (!formData.name.trim()) {
+      setError("상품명을 입력해주세요.");
+      setLoading(false);
+      return;
+    }
+    if (!formData.sku.trim()) {
+      setError("SKU를 입력해주세요.");
+      setLoading(false);
+      return;
+    }
 
     try {
-      // TODO: API 호출
-      console.log("Creating product:", formData);
+      await apiClientMutation("/api/products", "POST", formData);
       
       // 성공 후 목록 페이지로 이동
-      router.push("/dashboard/products");
-    } catch (error) {
+      const redirectUrl = tenant 
+        ? `/dashboard/products?tenant=${tenant}`
+        : "/dashboard/products";
+      router.push(redirectUrl);
+    } catch (error: any) {
       console.error("Error creating product:", error);
-      alert("상품 등록에 실패했습니다.");
+      setError(error.message || "상품 등록에 실패했습니다.");
     } finally {
       setLoading(false);
     }
@@ -48,6 +68,13 @@ export default function NewProductPage() {
         <h1 className="mt-4 text-3xl font-bold text-gray-900">새 상품 등록</h1>
         <p className="text-gray-600 mt-2">새로운 상품 정보를 입력하세요</p>
       </div>
+
+      {/* Error Message */}
+      {error && (
+        <div className="rounded-lg border border-red-200 bg-red-50 p-4">
+          <p className="text-sm text-red-800">{error}</p>
+        </div>
+      )}
 
       {/* Form */}
       <form onSubmit={handleSubmit} className="max-w-2xl space-y-6">

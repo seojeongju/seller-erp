@@ -1,19 +1,49 @@
 import Link from "next/link";
-import { Plus, Search } from "lucide-react";
+import { Plus } from "lucide-react";
 import { apiServer } from "@/lib/api";
+import { SearchInput } from "@/components/common/search-input";
+import { FilterSelect } from "@/components/common/filter-select";
+import { Pagination } from "@/components/common/pagination";
 
-export default async function ProductsPage() {
+interface ProductsPageProps {
+  searchParams: {
+    page?: string;
+    search?: string;
+    category?: string;
+  };
+}
+
+export default async function ProductsPage({ searchParams }: ProductsPageProps) {
+  // URL 파라미터에서 검색 조건 추출
+  const page = parseInt(searchParams.page || "1", 10);
+  const limit = 10;
+  const search = searchParams.search || "";
+  const category = searchParams.category || "";
+
+  // API 쿼리 파라미터 구성
+  const queryParams = new URLSearchParams({
+    page: page.toString(),
+    limit: limit.toString(),
+  });
+  if (search) queryParams.set("search", search);
+  if (category) queryParams.set("category", category);
+
   // API에서 상품 목록 가져오기
   let products: any[] = [];
-  let pagination: any = null;
+  let pagination: any = {
+    page: 1,
+    limit: 10,
+    total: 0,
+    totalPages: 1,
+  };
 
   try {
-    const response = await apiServer<{ data: any[]; pagination: any }>("/api/products?page=1&limit=100");
-    if (Array.isArray(response)) {
-      products = response;
-    } else if (response?.data) {
+    const response = await apiServer<{ data: any[]; pagination: any }>(
+      `/api/products?${queryParams.toString()}`
+    );
+    if (response?.data) {
       products = response.data;
-      pagination = response.pagination;
+      pagination = response.pagination || pagination;
     }
   } catch (error) {
     console.error("Error fetching products:", error);
@@ -51,22 +81,19 @@ export default async function ProductsPage() {
 
       {/* Search and Filters */}
       <div className="flex items-center space-x-4">
-        <div className="flex-1">
-          <div className="relative">
-            <Search className="absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-gray-400" />
-            <input
-              type="text"
-              placeholder="상품명, SKU로 검색..."
-              className="w-full rounded-lg border border-gray-300 py-2 pl-10 pr-4 text-sm focus:border-indigo-500 focus:outline-none focus:ring-1 focus:ring-indigo-500"
-            />
-          </div>
-        </div>
-        <select className="rounded-lg border border-gray-300 px-4 py-2 text-sm focus:border-indigo-500 focus:outline-none focus:ring-1 focus:ring-indigo-500">
-          <option value="">전체 카테고리</option>
-          <option value="jewelry">주얼리</option>
-          <option value="camera">카메라</option>
-          <option value="electronics">전자제품</option>
-        </select>
+        <SearchInput
+          placeholder="상품명, SKU로 검색..."
+          paramName="search"
+        />
+        <FilterSelect
+          options={[
+            { value: "주얼리", label: "주얼리" },
+            { value: "카메라", label: "카메라" },
+            { value: "전자제품", label: "전자제품" },
+          ]}
+          paramName="category"
+          placeholder="전체 카테고리"
+        />
       </div>
 
       {/* Products Table */}
@@ -144,6 +171,16 @@ export default async function ProductsPage() {
           </tbody>
         </table>
       </div>
+
+      {/* Pagination */}
+      {pagination.totalPages > 1 && (
+        <Pagination
+          currentPage={pagination.page || page}
+          totalPages={pagination.totalPages || 1}
+          totalItems={pagination.total || 0}
+          itemsPerPage={pagination.limit || limit}
+        />
+      )}
     </div>
   );
 }

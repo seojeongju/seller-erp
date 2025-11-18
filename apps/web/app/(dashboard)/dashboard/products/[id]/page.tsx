@@ -1,66 +1,126 @@
 "use client";
 
-import { useState } from "react";
-import { useRouter } from "next/navigation";
+import { useState, useEffect } from "react";
+import { useRouter, useSearchParams } from "next/navigation";
 import Link from "next/link";
 import { ArrowLeft, Trash2 } from "lucide-react";
+import { apiClient, apiClientMutation } from "@/lib/api";
 
 export default function ProductDetailPage({ params }: { params: { id: string } }) {
   const router = useRouter();
-  const [loading, setLoading] = useState(false);
+  const searchParams = useSearchParams();
+  const tenant = searchParams.get("tenant");
+  const [loading, setLoading] = useState(true);
+  const [saving, setSaving] = useState(false);
   const [isEditing, setIsEditing] = useState(false);
-  
-  // TODO: API에서 상품 데이터 가져오기
+  const [error, setError] = useState("");
   const [formData, setFormData] = useState({
-    name: "샘플 상품",
-    sku: "PROD-001",
-    description: "이것은 샘플 상품입니다",
-    category: "주얼리",
-    brand: "샘플 브랜드",
+    name: "",
+    sku: "",
+    description: "",
+    category: "",
+    brand: "",
+    imageUrls: [] as string[],
   });
+
+  // 상품 데이터 로드
+  useEffect(() => {
+    const loadProduct = async () => {
+      try {
+        setLoading(true);
+        const product = await apiClient<any>(`/api/products/${params.id}`);
+        setFormData({
+          name: product.name || "",
+          sku: product.sku || "",
+          description: product.description || "",
+          category: product.category || "",
+          brand: product.brand || "",
+          imageUrls: product.imageUrls || [],
+        });
+      } catch (error: any) {
+        console.error("Error loading product:", error);
+        setError("상품 정보를 불러오는데 실패했습니다.");
+      } finally {
+        setLoading(false);
+      }
+    };
+
+    loadProduct();
+  }, [params.id]);
 
   const handleUpdate = async (e: React.FormEvent) => {
     e.preventDefault();
-    setLoading(true);
+    setSaving(true);
+    setError("");
+
+    // 폼 검증
+    if (!formData.name.trim()) {
+      setError("상품명을 입력해주세요.");
+      setSaving(false);
+      return;
+    }
+    if (!formData.sku.trim()) {
+      setError("SKU를 입력해주세요.");
+      setSaving(false);
+      return;
+    }
 
     try {
-      // TODO: API 호출
-      console.log("Updating product:", formData);
-      alert("상품이 수정되었습니다.");
+      await apiClientMutation(`/api/products/${params.id}`, "PATCH", formData);
       setIsEditing(false);
-    } catch (error) {
+      // 데이터 다시 로드
+      const product = await apiClient<any>(`/api/products/${params.id}`);
+      setFormData({
+        name: product.name || "",
+        sku: product.sku || "",
+        description: product.description || "",
+        category: product.category || "",
+        brand: product.brand || "",
+        imageUrls: product.imageUrls || [],
+      });
+    } catch (error: any) {
       console.error("Error updating product:", error);
-      alert("상품 수정에 실패했습니다.");
+      setError(error.message || "상품 수정에 실패했습니다.");
     } finally {
-      setLoading(false);
+      setSaving(false);
     }
   };
 
   const handleDelete = async () => {
-    if (!confirm("정말 이 상품을 삭제하시겠습니까?")) {
+    if (!confirm("정말 이 상품을 삭제하시겠습니까? 이 작업은 되돌릴 수 없습니다.")) {
       return;
     }
 
-    setLoading(true);
+    setSaving(true);
     try {
-      // TODO: API 호출
-      console.log("Deleting product:", params.id);
-      alert("상품이 삭제되었습니다.");
-      router.push("/dashboard/products");
-    } catch (error) {
+      await apiClientMutation(`/api/products/${params.id}`, "DELETE");
+      const redirectUrl = tenant 
+        ? `/dashboard/products?tenant=${tenant}`
+        : "/dashboard/products";
+      router.push(redirectUrl);
+    } catch (error: any) {
       console.error("Error deleting product:", error);
-      alert("상품 삭제에 실패했습니다.");
-    } finally {
-      setLoading(false);
+      setError(error.message || "상품 삭제에 실패했습니다.");
+      setSaving(false);
     }
   };
+
+  if (loading) {
+    return (
+      <div className="space-y-6">
+        <div className="rounded-lg border border-gray-200 bg-white p-12 text-center">
+          <p className="text-gray-500">로딩 중...</p>
+        </div>
+      </div>
+    );
+  }
 
   return (
     <div className="space-y-6">
       {/* Header */}
       <div>
         <Link
-          href="/dashboard/products"
+          href={tenant ? `/dashboard/products?tenant=${tenant}` : "/dashboard/products"}
           className="inline-flex items-center space-x-2 text-sm text-gray-600 hover:text-gray-900"
         >
           <ArrowLeft className="h-4 w-4" />
@@ -82,7 +142,7 @@ export default function ProductDetailPage({ params }: { params: { id: string } }
                 </button>
                 <button
                   onClick={handleDelete}
-                  disabled={loading}
+                  disabled={saving}
                   className="rounded-lg border border-red-300 bg-white px-4 py-2 text-sm font-medium text-red-600 hover:bg-red-50 disabled:opacity-50"
                 >
                   <Trash2 className="h-4 w-4" />
@@ -92,6 +152,13 @@ export default function ProductDetailPage({ params }: { params: { id: string } }
           </div>
         </div>
       </div>
+
+      {/* Error Message */}
+      {error && (
+        <div className="rounded-lg border border-red-200 bg-red-50 p-4">
+          <p className="text-sm text-red-800">{error}</p>
+        </div>
+      )}
 
       {/* Content */}
       <form onSubmit={handleUpdate} className="max-w-2xl space-y-6">
@@ -201,10 +268,10 @@ export default function ProductDetailPage({ params }: { params: { id: string } }
             </button>
             <button
               type="submit"
-              disabled={loading}
+              disabled={saving}
               className="rounded-lg bg-indigo-600 px-4 py-2 text-sm font-medium text-white hover:bg-indigo-700 disabled:opacity-50"
             >
-              {loading ? "저장 중..." : "저장"}
+              {saving ? "저장 중..." : "저장"}
             </button>
           </div>
         )}

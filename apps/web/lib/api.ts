@@ -66,3 +66,30 @@ export async function apiServer<T>(
   }
 }
 
+// 클라이언트 사이드 POST/PUT/DELETE 요청
+export async function apiClientMutation<T>(
+  endpoint: string,
+  method: "POST" | "PUT" | "PATCH" | "DELETE",
+  data?: any
+): Promise<T> {
+  const session = await getSession();
+  const tenantSlug = session?.user?.tenantSlug || "";
+
+  const response = await fetch(`${API_URL}${endpoint}`, {
+    method,
+    headers: {
+      "Content-Type": "application/json",
+      "x-tenant-slug": tenantSlug,
+    },
+    body: data ? JSON.stringify(data) : undefined,
+  });
+
+  if (!response.ok) {
+    const error = await response.json().catch(() => ({ message: "Unknown error" }));
+    throw new Error(error.message || `HTTP error! status: ${response.status}`);
+  }
+
+  const result = await response.json();
+  return result.data || result;
+}
+
