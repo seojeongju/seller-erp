@@ -21,11 +21,11 @@ export default async function InventoryPage() {
   let inventoryItems: any[] = [];
 
   try {
-    const response = await apiServer<any[]>("/api/inventory/items");
+    const response = await apiServer<any[] | { data: any[] }>("/api/inventory/items");
     if (Array.isArray(response)) {
       inventoryItems = response;
-    } else if (response?.data) {
-      inventoryItems = response.data;
+    } else if (response && typeof response === 'object' && 'data' in response) {
+      inventoryItems = (response as { data: any[] }).data;
     }
   } catch (error) {
     console.error("Error fetching inventory items:", error);
