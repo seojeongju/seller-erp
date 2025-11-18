@@ -53,7 +53,7 @@ export default function SignInPage() {
           <div className="mb-6 flex justify-center">
             <Link href="/">
               <Image
-                src="/logo.png"
+                src="/Logo.png"
                 alt="WOW Seller ERP"
                 width={80}
                 height={80}

@@ -1,0 +1,23 @@
+name: Auto Deploy
+
+on:
+  push:
+    branches:
+      - main
+  workflow_dispatch:
+
+jobs:
+  notify:
+    runs-on: ubuntu-latest
+    steps:
+      - name: 배포 알림
+        run: |
+          echo "🚀 자동 배포가 시작되었습니다!"
+          echo "📦 Vercel에서 자동으로 빌드 및 배포가 진행됩니다."
+          echo "🌐 배포 상태: https://vercel.com/dashboard"
+          
+      - name: 배포 확인
+        run: |
+          echo "✅ GitHub Actions 워크플로우 실행 완료"
+          echo "💡 Vercel이 자동으로 배포를 처리합니다."
+

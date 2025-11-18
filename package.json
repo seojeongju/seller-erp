@@ -15,7 +15,10 @@
     "db:generate": "turbo run db:generate",
     "db:migrate": "turbo run db:migrate",
     "db:studio": "turbo run db:studio",
-    "db:seed": "turbo run db:seed"
+    "db:seed": "turbo run db:seed",
+    "commit": "powershell -ExecutionPolicy Bypass -File ./auto-commit.ps1",
+    "commit:watch": "powershell -ExecutionPolicy Bypass -File ./auto-commit.ps1 watch",
+    "commit:message": "powershell -ExecutionPolicy Bypass -File ./auto-commit.ps1 -Message"
   },
   "devDependencies": {
     "prettier": "^3.2.5",

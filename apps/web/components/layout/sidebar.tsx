@@ -56,7 +56,7 @@ export function Sidebar() {
       <div className="flex h-16 items-center border-b border-gray-200 px-6">
         <Link href={tenant ? `/dashboard?tenant=${tenant}` : "/dashboard"} className="flex items-center space-x-2">
           <Image
-            src="/logo.png"
+            src="/Logo.png"
             alt="WOW Seller ERP"
             width={32}
             height={32}

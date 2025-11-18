@@ -9,7 +9,7 @@ export default function HomePage() {
           {/* Logo */}
           <div className="mb-6 flex justify-center">
             <Image
-              src="/logo.png"
+              src="/Logo.png"
               alt="WOW Seller ERP"
               width={120}
               height={120}
@@ -19,7 +19,7 @@ export default function HomePage() {
           </div>
           <h1 className="text-5xl font-bold text-gray-900">WOW Seller ERP</h1>
           <p className="mt-4 text-xl text-gray-600">
-            주얼리, 소형 카메라, 소형 전자제품 판매 업체를 위한
+           빛나는 가치를 더 완벽하게 관리하는 법
           </p>
           <p className="text-xl text-gray-600">현대적인 멀티테넌시(Multi-tenancy) SaaS ERP 시스템</p>
         </div>
