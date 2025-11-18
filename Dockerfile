@@ -29,13 +29,14 @@ RUN pnpm db:generate
 
 # Build the application
 WORKDIR /app/apps/api
-RUN pnpm build
-
-# Debug: Check build output
-RUN echo "=== Build output ===" && \
-    ls -la dist/ && \
-    echo "=== Files in dist ===" && \
-    find dist -type f
+RUN pnpm build && \
+    echo "=== Build completed ===" && \
+    echo "=== Current directory: $(pwd) ===" && \
+    ls -la && \
+    echo "=== dist directory ===" && \
+    ls -la dist/ 2>/dev/null || echo "No dist found" && \
+    echo "=== All JS files ===" && \
+    find . -name "*.js" -type f | head -20
 
 # Production stage
 FROM node:18-alpine AS production
@@ -69,6 +70,16 @@ WORKDIR /app
 
 # Copy built application
 COPY --from=base /app/apps/api/dist ./apps/api/dist
+
+# Debug: Check what was copied
+RUN echo "=== Production stage: Checking copied files ===" && \
+    ls -la /app/ && \
+    echo "=== apps/api directory ===" && \
+    ls -la /app/apps/api/ && \
+    echo "=== dist directory ===" && \
+    ls -la /app/apps/api/dist/ 2>/dev/null || echo "dist directory not found!" && \
+    echo "=== Finding all .js files ===" && \
+    find /app/apps -name "*.js" -type f 2>/dev/null || echo "No JS files found"
 
 # Expose port (Railway will set PORT env var)
 EXPOSE 3001
