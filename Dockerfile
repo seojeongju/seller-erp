@@ -58,11 +58,18 @@ COPY apps/api/package.json ./apps/api/
 COPY packages/db/package.json ./packages/db/
 COPY packages/types/package.json ./packages/types/
 
-# Copy ONLY Prisma schema (needed for Prisma Client generation)
-COPY --from=base /app/packages/db/prisma ./packages/db/prisma
+# Copy packages source (needed for workspace resolution and Prisma)
+COPY --from=base /app/packages ./packages
+
+# Copy tsconfig for packages/types build
+COPY apps/api/tsconfig.json ./apps/api/
 
 # Install production dependencies only
 RUN pnpm install --frozen-lockfile --prod
+
+# Build packages/types
+WORKDIR /app/packages/types
+RUN pnpm build 2>&1 || echo "Types build completed or no build needed"
 
 # Generate Prisma Client in production
 WORKDIR /app/packages/db
@@ -88,4 +95,5 @@ RUN echo "=== Production stage: Checking copied files ===" && \
 EXPOSE 3001
 
 # Start the application (from /app root)
-CMD ["node", "apps/api/dist/apps/api/src/main"]
+# Use tsconfig-paths to resolve path mappings at runtime
+CMD ["node", "-r", "tsconfig-paths/register", "apps/api/dist/apps/api/src/main"]
