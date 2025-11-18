@@ -25,21 +25,21 @@ export function withTenantFilter<T extends PrismaClient>(
   return (prisma as any).$extends({
     query: {
       $allModels: {
-        async findMany({ args, query }) {
+        async findMany({ args, query }: any) {
           if (!args.where) {
             args.where = {};
           }
           (args.where as any).tenantId = tenantId;
           return query(args);
         },
-        async findFirst({ args, query }) {
+        async findFirst({ args, query }: any) {
           if (!args.where) {
             args.where = {};
           }
           (args.where as any).tenantId = tenantId;
           return query(args);
         },
-        async findUnique({ args, query }) {
+        async findUnique({ args, query }: any) {
           // findUnique는 where에 tenantId를 추가할 수 없으므로
           // 쿼리 후에 tenantId를 확인해야 함
           const result = await query(args);
@@ -48,41 +48,41 @@ export function withTenantFilter<T extends PrismaClient>(
           }
           return result;
         },
-        async create({ args, query }) {
+        async create({ args, query }: any) {
           if (args.data && typeof args.data === 'object') {
             (args.data as any).tenantId = tenantId;
           }
           return query(args);
         },
-        async update({ args, query }) {
+        async update({ args, query }: any) {
           if (!args.where) {
             args.where = {} as any;
           }
           (args.where as any).tenantId = tenantId;
           return query(args);
         },
-        async updateMany({ args, query }) {
+        async updateMany({ args, query }: any) {
           if (!args.where) {
             args.where = {};
           }
           (args.where as any).tenantId = tenantId;
           return query(args);
         },
-        async delete({ args, query }) {
+        async delete({ args, query }: any) {
           if (!args.where) {
             args.where = {} as any;
           }
           (args.where as any).tenantId = tenantId;
           return query(args);
         },
-        async deleteMany({ args, query }) {
+        async deleteMany({ args, query }: any) {
           if (!args.where) {
             args.where = {};
           }
           (args.where as any).tenantId = tenantId;
           return query(args);
         },
-        async count({ args, query }) {
+        async count({ args, query }: any) {
           if (!args.where) {
             args.where = {};
           }
