@@ -23,6 +23,9 @@ RUN pnpm install --frozen-lockfile
 COPY apps/api ./apps/api
 COPY packages ./packages
 
+# Generate Prisma Client (필수!)
+RUN pnpm --filter @seller-erp/db prisma generate
+
 # Build the application
 RUN pnpm --filter @seller-erp/api build
 
