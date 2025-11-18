@@ -1,0 +1,38 @@
+{
+  "name": "@seller-erp/web",
+  "version": "0.1.0",
+  "private": true,
+  "scripts": {
+    "dev": "next dev -p 3000",
+    "build": "next build",
+    "start": "next start",
+    "lint": "next lint"
+  },
+  "dependencies": {
+    "next": "^14.2.0",
+    "react": "^18.2.0",
+    "react-dom": "^18.2.0",
+    "@seller-erp/ui": "workspace:*",
+    "@seller-erp/types": "workspace:*",
+    "@seller-erp/db": "workspace:*",
+    "next-auth": "^4.24.5",
+    "bcryptjs": "^2.4.3",
+    "class-variance-authority": "^0.7.0",
+    "clsx": "^2.1.0",
+    "tailwind-merge": "^2.2.0",
+    "lucide-react": "^0.344.0",
+    "date-fns": "^3.0.0"
+  },
+  "devDependencies": {
+    "@types/node": "^20",
+    "@types/react": "^18.2.48",
+    "@types/react-dom": "^18.2.18",
+    "@types/bcryptjs": "^2.4.6",
+    "typescript": "^5.3.3",
+    "tailwindcss": "^3.4.1",
+    "postcss": "^8.4.35",
+    "autoprefixer": "^10.4.17",
+    "eslint": "^8",
+    "eslint-config-next": "^14.2.0"
+  }
+}
