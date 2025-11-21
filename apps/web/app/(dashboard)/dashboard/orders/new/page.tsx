@@ -33,11 +33,13 @@ export default function NewOrderPage() {
       try {
         setLoading(true);
         const [customersData, productsData] = await Promise.all([
-          apiClient<any[]>("/api/customers?page=1&limit=100"),
-          apiClient<any[]>("/api/products?page=1&limit=100"),
+          apiClient<any>("/api/customers?page=1&limit=100"),
+          apiClient<any>("/api/products?page=1&limit=100"),
         ]);
-        setCustomers(Array.isArray(customersData) ? customersData : customersData?.data || []);
-        setProducts(Array.isArray(productsData) ? productsData : productsData?.data || []);
+        const customers = Array.isArray(customersData) ? customersData : (customersData && typeof customersData === 'object' && 'data' in customersData && Array.isArray(customersData.data) ? customersData.data : []);
+        const products = Array.isArray(productsData) ? productsData : (productsData && typeof productsData === 'object' && 'data' in productsData && Array.isArray(productsData.data) ? productsData.data : []);
+        setCustomers(customers);
+        setProducts(products);
       } catch (error: any) {
         console.error("Error loading data:", error);
         setError("데이터를 불러오는데 실패했습니다.");
