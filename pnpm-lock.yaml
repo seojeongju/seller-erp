@@ -36,14 +36,17 @@ importers:
         specifier: ^10.0.0
         version: 10.4.20(@nestjs/common@10.4.20)(@nestjs/core@10.4.20)
       '@prisma/client':
-        specifier: ^5.9.1
+        specifier: ^5.22.0
         version: 5.22.0(prisma@5.22.0)
       '@seller-erp/db':
-        specifier: workspace:*
-        version: link:../../packages/db
+        specifier: file:../../packages/db
+        version: file:packages/db
       '@seller-erp/types':
-        specifier: workspace:*
-        version: link:../../packages/types
+        specifier: file:../../packages/types
+        version: file:packages/types
+      '@types/multer':
+        specifier: ^2.0.0
+        version: 2.0.0
       bcryptjs:
         specifier: ^2.4.3
         version: 2.4.3
@@ -53,6 +56,9 @@ importers:
       class-validator:
         specifier: ^0.14.0
         version: 0.14.2
+      multer:
+        specifier: ^2.0.2
+        version: 2.0.2
       reflect-metadata:
         specifier: ^0.2.0
         version: 0.2.2
@@ -133,14 +139,14 @@ importers:
   apps/web:
     dependencies:
       '@seller-erp/db':
-        specifier: workspace:*
-        version: link:../../packages/db
+        specifier: file:../../packages/db
+        version: file:packages/db
       '@seller-erp/types':
-        specifier: workspace:*
-        version: link:../../packages/types
+        specifier: file:../../packages/types
+        version: file:packages/types
       '@seller-erp/ui':
-        specifier: workspace:*
-        version: link:../../packages/ui
+        specifier: file:../../packages/ui
+        version: file:packages/ui(react-dom@18.3.1)(react@18.3.1)
       bcryptjs:
         specifier: ^2.4.3
         version: 2.4.3
@@ -206,7 +212,7 @@ importers:
   packages/db:
     dependencies:
       '@prisma/client':
-        specifier: ^5.9.1
+        specifier: ^5.22.0
         version: 5.22.0(prisma@5.22.0)
       bcryptjs:
         specifier: ^2.4.3
@@ -216,7 +222,7 @@ importers:
         specifier: ^2.4.6
         version: 2.4.6
       prisma:
-        specifier: ^5.9.1
+        specifier: ^5.22.0
         version: 5.22.0
       tsx:
         specifier: ^4.7.0
@@ -1782,13 +1788,11 @@ packages:
     dependencies:
       '@types/connect': 3.4.38
       '@types/node': 20.19.25
-    dev: true
 
   /@types/connect@3.4.38:
     resolution: {integrity: sha512-K6uROf1LD88uDQqJCktA4yzL1YYAK6NgfsI0v/mTgyPKWsX1CnJ0XPSDhViejru1GcRkLWb8RlzFYJRqGUbaug==}
     dependencies:
       '@types/node': 20.19.25
-    dev: true
 
   /@types/cookiejar@2.1.5:
     resolution: {integrity: sha512-he+DHOWReW0nghN24E1WUqM0efK4kI9oTqDm6XmK8ZPe2djZ90BSNdGnIyCLzCPw7/pogPlGbzI2wHGGmi4O/Q==}
@@ -1819,7 +1823,6 @@ packages:
       '@types/qs': 6.14.0
       '@types/range-parser': 1.2.7
       '@types/send': 1.2.1
-    dev: true
 
   /@types/express@5.0.5:
     resolution: {integrity: sha512-LuIQOcb6UmnF7C1PCFmEU1u2hmiHL43fgFQX67sN3H4Z+0Yk0Neo++mFsBjhOAuLzvlQeqAAkeDOZrJs9rzumQ==}
@@ -1827,7 +1830,6 @@ packages:
       '@types/body-parser': 1.19.6
       '@types/express-serve-static-core': 5.1.0
       '@types/serve-static': 1.15.10
-    dev: true
 
   /@types/graceful-fs@4.1.9:
     resolution: {integrity: sha512-olP3sd1qOEe5dXTSaFvQG+02VdRXcdytWLAZsAq1PecU8uqQAhkrnbli7DagjtXKW/Bl7YJbUsa8MPcuc8LHEQ==}
@@ -1837,7 +1839,6 @@ packages:
 
   /@types/http-errors@2.0.5:
     resolution: {integrity: sha512-r8Tayk8HJnX0FztbZN7oVqGccWgw98T/0neJphO91KkmOzug1KkofZURD4UaD5uH8AqcFLfdPErnBod0u71/qg==}
-    dev: true
 
   /@types/istanbul-lib-coverage@2.0.6:
     resolution: {integrity: sha512-2QF/t/auWm0lsy8XtKVPG19v3sSOQlJe/YHZgfjb/KBBHOGSV+J2q/S671rcq9uTBrLAXmZpqJiaQbMT+zNU1w==}
@@ -1876,13 +1877,17 @@ packages:
 
   /@types/mime@1.3.5:
     resolution: {integrity: sha512-/pyBZWSLD2n0dcHE3hq8s8ZvcETHtEuF+3E7XVt0Ig2nvsVQXdghHVcEkIWjy9A0wKfTn97a/PSDYohKIlnP/w==}
-    dev: true
+
+  /@types/multer@2.0.0:
+    resolution: {integrity: sha512-C3Z9v9Evij2yST3RSBktxP9STm6OdMc5uR1xF1SGr98uv8dUlAL2hqwrZ3GVB3uyMyiegnscEK6PGtYvNrjTjw==}
+    dependencies:
+      '@types/express': 5.0.5
+    dev: false
 
   /@types/node@20.19.25:
     resolution: {integrity: sha512-ZsJzA5thDQMSQO788d7IocwwQbI8B5OPzmqNvpf3NY/+MHDAS759Wo0gd2WQeXYt5AAAQjzcrTVC6SKCuYgoCQ==}
     dependencies:
       undici-types: 6.21.0
-    dev: true
 
   /@types/prop-types@15.7.15:
     resolution: {integrity: sha512-F6bEyamV9jKGAFBEmlQnesRPGOQqS2+Uwi0Em15xenOxHaf2hv6L8YCVn3rPdPJOiJfPiCnLIRyvwVaqMY3MIw==}
@@ -1890,11 +1895,9 @@ packages:
 
   /@types/qs@6.14.0:
     resolution: {integrity: sha512-eOunJqu0K1923aExK6y8p6fsihYEn/BYuQ4g0CxAAgFc4b/ZLN4CrsRZ55srTdqoiLzU2B2evC+apEIxprEzkQ==}
-    dev: true
 
   /@types/range-parser@1.2.7:
     resolution: {integrity: sha512-hKormJbkJqzQGhziax5PItDUTMAM9uE2XXQmM37dyd4hVM+5aVl7oVxMVUiVQn2oCQFN/LKCZdvSM0pFRqbSmQ==}
-    dev: true
 
   /@types/react-dom@18.3.7(@types/react@18.3.26):
     resolution: {integrity: sha512-MEe3UeoENYVFXzoXEWsvcpg6ZvlrFNlOQ7EOsvhI3CfAXwzPfO8Qwuxd40nepsYKqyyVQnTdEfv68q91yLcKrQ==}
@@ -1916,13 +1919,11 @@ packages:
     dependencies:
       '@types/mime': 1.3.5
       '@types/node': 20.19.25
-    dev: true
 
   /@types/send@1.2.1:
     resolution: {integrity: sha512-arsCikDvlU99zl1g69TcAB3mzZPpxgw0UQnaHeC1Nwb015xp8bknZv5rIfri9xTOcMuaVgvabfIRA7PSZVuZIQ==}
     dependencies:
       '@types/node': 20.19.25
-    dev: true
 
   /@types/serve-static@1.15.10:
     resolution: {integrity: sha512-tRs1dB+g8Itk72rlSI2ZrW6vZg0YrLI81iQSTkMmOqnqCaNr/8Ek4VwWcN5vZgCYWbg/JJSGBlUaYGAOP73qBw==}
@@ -1930,7 +1931,6 @@ packages:
       '@types/http-errors': 2.0.5
       '@types/node': 20.19.25
       '@types/send': 0.17.6
-    dev: true
 
   /@types/stack-utils@2.0.3:
     resolution: {integrity: sha512-9aEbYZ3TbYMznPdcdr3SmIrLXwC/AKZXQeCf9Pgao5CKb8CyHuEX5jzWPTkvregvhRJHcpRO6BFoGW9ycaOkYw==}
@@ -7639,7 +7639,6 @@ packages:
 
   /undici-types@6.21.0:
     resolution: {integrity: sha512-iwDZqg0QAGrg9Rav5H4n0M64c3mkR59cJ6wQp+7C4nI0gsmExaedaYLNO44eT4AtBBwjbTiGPMlt2Md0T9H9JQ==}
-    dev: true
 
   /universalify@2.0.1:
     resolution: {integrity: sha512-gptHNQghINnc/vTGIk0SOFGFNXw7JVrlRUtConJRlvaw6DuX0wO5Jeko9sWrMBhh+PsYAZ7oXAiOnf/UKogyiw==}
@@ -7999,3 +7998,34 @@ packages:
     resolution: {integrity: sha512-rVksvsnNCdJ/ohGc6xgPwyN8eheCxsiLM8mxuE/t/mOVqJewPuO1miLpTHQiRgTKCLexL4MeAFVagts7HmNZ2Q==}
     engines: {node: '>=10'}
     dev: true
+
+  file:packages/db:
+    resolution: {directory: packages/db, type: directory}
+    name: '@seller-erp/db'
+    dependencies:
+      '@prisma/client': 5.22.0(prisma@5.22.0)
+      bcryptjs: 2.4.3
+    transitivePeerDependencies:
+      - prisma
+    dev: false
+
+  file:packages/types:
+    resolution: {directory: packages/types, type: directory}
+    name: '@seller-erp/types'
+    dev: false
+
+  file:packages/ui(react-dom@18.3.1)(react@18.3.1):
+    resolution: {directory: packages/ui, type: directory}
+    id: file:packages/ui
+    name: '@seller-erp/ui'
+    peerDependencies:
+      react: ^18.2.0
+      react-dom: ^18.2.0
+    dependencies:
+      class-variance-authority: 0.7.1
+      clsx: 2.1.1
+      lucide-react: 0.344.0(react@18.3.1)
+      react: 18.3.1
+      react-dom: 18.3.1(react@18.3.1)
+      tailwind-merge: 2.6.0
+    dev: false
