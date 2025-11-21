@@ -1,4 +1,5 @@
 import Link from "next/link";
+import Image from "next/image";
 
 export default function HomePage() {
   return (
@@ -7,13 +8,14 @@ export default function HomePage() {
         <div>
           {/* Logo */}
           <div className="mb-6 flex justify-center">
-            <img
+            <Image
               src="/Logo.png"
               alt="WOW Seller ERP"
               width={120}
               height={120}
               className="h-auto w-auto"
-              style={{ maxWidth: '120px', maxHeight: '120px' }}
+              priority
+              unoptimized
             />
           </div>
           <h1 className="text-5xl font-bold text-gray-900">WOW Seller ERP</h1>
