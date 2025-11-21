@@ -8,13 +8,13 @@ export default function HomePage() {
         <div>
           {/* Logo */}
           <div className="mb-6 flex justify-center">
-            <Image
+            <img
               src="/Logo.png"
               alt="WOW Seller ERP"
               width={120}
               height={120}
               className="h-auto w-auto"
-              priority
+              style={{ maxWidth: '120px', maxHeight: '120px' }}
             />
           </div>
           <h1 className="text-5xl font-bold text-gray-900">WOW Seller ERP</h1>
