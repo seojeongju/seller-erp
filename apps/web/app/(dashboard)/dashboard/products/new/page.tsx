@@ -5,6 +5,7 @@ import { useRouter, useSearchParams } from "next/navigation";
 import Link from "next/link";
 import { ArrowLeft } from "lucide-react";
 import { apiClientMutation } from "@/lib/api";
+import { ImageUpload } from "@/components/products/image-upload";
 
 export default function NewProductPage() {
   const router = useRouter();
@@ -152,6 +153,13 @@ export default function NewProductPage() {
               />
             </div>
           </div>
+
+          {/* Image Upload */}
+          <ImageUpload
+            images={formData.imageUrls}
+            onChange={(urls) => setFormData({ ...formData, imageUrls: urls })}
+            maxImages={10}
+          />
         </div>
 
         {/* Actions */}

@@ -5,6 +5,9 @@ import { useRouter, useSearchParams } from "next/navigation";
 import Link from "next/link";
 import { ArrowLeft, Trash2 } from "lucide-react";
 import { apiClient, apiClientMutation } from "@/lib/api";
+import { ImageUpload } from "@/components/products/image-upload";
+import Image from "next/image";
+import { ProductVariantManager } from "@/components/products/product-variant-manager";
 
 export default function ProductDetailPage({ params }: { params: { id: string } }) {
   const router = useRouter();
@@ -22,6 +25,7 @@ export default function ProductDetailPage({ params }: { params: { id: string } }
     brand: "",
     imageUrls: [] as string[],
   });
+  const [productVariants, setProductVariants] = useState<any[]>([]);
 
   // 상품 데이터 로드
   useEffect(() => {
@@ -37,6 +41,7 @@ export default function ProductDetailPage({ params }: { params: { id: string } }
           brand: product.brand || "",
           imageUrls: product.imageUrls || [],
         });
+        setProductVariants(product.variants || []);
       } catch (error: any) {
         console.error("Error loading product:", error);
         setError("상품 정보를 불러오는데 실패했습니다.");
@@ -78,6 +83,7 @@ export default function ProductDetailPage({ params }: { params: { id: string } }
         brand: product.brand || "",
         imageUrls: product.imageUrls || [],
       });
+      setProductVariants(product.variants || []);
     } catch (error: any) {
       console.error("Error updating product:", error);
       setError(error.message || "상품 수정에 실패했습니다.");
@@ -254,6 +260,46 @@ export default function ProductDetailPage({ params }: { params: { id: string } }
               )}
             </div>
           </div>
+
+          {/* Image Upload */}
+          {isEditing && (
+            <ImageUpload
+              images={formData.imageUrls}
+              onChange={(urls) => setFormData({ ...formData, imageUrls: urls })}
+              maxImages={10}
+            />
+          )}
+          {!isEditing && formData.imageUrls.length > 0 && (
+            <div>
+              <label className="block text-sm font-medium text-gray-700 mb-2">
+                상품 이미지
+              </label>
+              <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 gap-4">
+                {formData.imageUrls.map((url, index) => (
+                  <div key={index} className="aspect-square rounded-lg overflow-hidden border border-gray-200 bg-gray-100 relative">
+                    <Image
+                      src={url}
+                      alt={`상품 이미지 ${index + 1}`}
+                      fill
+                      className="object-cover"
+                    />
+                  </div>
+                ))}
+              </div>
+            </div>
+          )}
+        </div>
+
+        {/* Product Variants */}
+        <div className="rounded-lg border border-gray-200 bg-white p-6">
+          <ProductVariantManager
+            productId={params.id}
+            variants={productVariants}
+            onVariantChange={async () => {
+              const product = await apiClient<any>(`/api/products/${params.id}`);
+              setProductVariants(product.variants || []);
+            }}
+          />
         </div>
 
         {/* Actions */}
