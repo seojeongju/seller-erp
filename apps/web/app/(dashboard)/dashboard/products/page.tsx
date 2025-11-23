@@ -10,6 +10,8 @@ interface ProductsPageProps {
     page?: string;
     search?: string;
     category?: string;
+    brand?: string;
+    sort?: string;
   };
 }
 
@@ -19,6 +21,11 @@ export default async function ProductsPage({ searchParams }: ProductsPageProps) 
   const limit = 10;
   const search = searchParams.search || "";
   const category = searchParams.category || "";
+  const brand = searchParams.brand || "";
+
+  // Sort 파라미터 파싱 (예: "createdAt-desc" -> sortBy: "createdAt", sortOrder: "desc")
+  const sortParam = searchParams.sort || "";
+  const [sortBy, sortOrder] = sortParam ? sortParam.split("-") : ["", ""];
 
   // API 쿼리 파라미터 구성
   const queryParams = new URLSearchParams({
@@ -27,6 +34,9 @@ export default async function ProductsPage({ searchParams }: ProductsPageProps) 
   });
   if (search) queryParams.set("search", search);
   if (category) queryParams.set("category", category);
+  if (brand) queryParams.set("brand", brand);
+  if (sortBy) queryParams.set("sortBy", sortBy);
+  if (sortOrder) queryParams.set("sortOrder", sortOrder);
 
   // API에서 상품 목록 가져오기
   let products: any[] = [];
@@ -80,19 +90,40 @@ export default async function ProductsPage({ searchParams }: ProductsPageProps) 
       </div>
 
       {/* Search and Filters */}
-      <div className="flex items-center space-x-4">
-        <SearchInput
-          placeholder="상품명, SKU로 검색..."
-          paramName="search"
-        />
+      <div className="flex flex-col gap-4 sm:flex-row sm:items-center sm:justify-between">
+        <div className="flex flex-1 items-center space-x-4">
+          <SearchInput
+            placeholder="상품명, SKU로 검색..."
+            paramName="search"
+          />
+          <FilterSelect
+            options={[
+              { value: "주얼리", label: "주얼리" },
+              { value: "카메라", label: "카메라" },
+              { value: "전자제품", label: "전자제품" },
+            ]}
+            paramName="category"
+            placeholder="전체 카테고리"
+          />
+          <FilterSelect
+            options={[
+              { value: "Apple", label: "Apple" },
+              { value: "Samsung", label: "Samsung" },
+              { value: "Sony", label: "Sony" },
+            ]}
+            paramName="brand"
+            placeholder="전체 브랜드"
+          />
+        </div>
         <FilterSelect
           options={[
-            { value: "주얼리", label: "주얼리" },
-            { value: "카메라", label: "카메라" },
-            { value: "전자제품", label: "전자제품" },
+            { value: "createdAt-desc", label: "최신순" },
+            { value: "createdAt-asc", label: "오래된순" },
+            { value: "name-asc", label: "이름순 (A-Z)" },
+            { value: "name-desc", label: "이름순 (Z-A)" },
           ]}
-          paramName="category"
-          placeholder="전체 카테고리"
+          paramName="sort"
+          placeholder="정렬"
         />
       </div>
 
