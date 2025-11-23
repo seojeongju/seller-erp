@@ -1,6 +1,7 @@
 "use client";
 
 import { TrendingUp, TrendingDown, Package, Users, ShoppingCart, AlertTriangle } from "lucide-react";
+import { motion } from "framer-motion";
 
 interface KPIData {
   revenue: {
@@ -87,36 +88,9 @@ export function KPICards({ data }: KPICardsProps) {
     },
   ];
 
-  return (
-    <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
-      {kpis.map((kpi, index) => {
-        const Icon = kpi.icon;
-        return (
-          <div
-            key={index}
-            className={`bg-white rounded-lg shadow p-6 ${kpi.warning ? "ring-2 ring-red-200" : ""}`}
-          >
-            <div className="flex items-center justify-between">
-              <div>
-                <p className="text-sm font-medium text-gray-600">{kpi.title}</p>
-                <p className="text-2xl font-bold text-gray-900 mt-2">
-                  {kpi.value}
-                </p>
-                {kpi.change && (
-                  <p className="text-sm text-gray-500 mt-1">
-                    {kpi.change}
-                    {kpi.changeValue} ({kpi.changeLabel})
-                  </p>
-                )}
-              </div>
-              <div className={`${kpi.bgColor} p-3 rounded-full`}>
-                <Icon className={`h-6 w-6 ${kpi.color}`} />
-              </div>
-            </div>
-          </div>
-        );
-      })}
-    </div>
+  {
+    kpi.change && (
+    </div >
   );
-}
+  }
 
