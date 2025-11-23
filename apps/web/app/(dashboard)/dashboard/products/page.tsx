@@ -80,13 +80,21 @@ export default async function ProductsPage({ searchParams }: ProductsPageProps) 
           <h1 className="text-3xl font-bold text-gray-900">상품 관리</h1>
           <p className="text-gray-600 mt-2">상품을 등록하고 관리하세요</p>
         </div>
-        <Link
-          href="/dashboard/products/new"
-          className="flex items-center space-x-2 rounded-lg bg-indigo-600 px-4 py-2 text-sm font-medium text-white hover:bg-indigo-700"
-        >
-          <Plus className="h-4 w-4" />
-          <span>상품 등록</span>
-        </Link>
+        <div className="flex items-center space-x-2">
+          <Link
+            href="/dashboard/products/bulk-upload"
+            className="flex items-center space-x-2 rounded-lg border border-indigo-600 bg-white px-4 py-2 text-sm font-medium text-indigo-600 hover:bg-indigo-50"
+          >
+            <span>대량 등록</span>
+          </Link>
+          <Link
+            href="/dashboard/products/new"
+            className="flex items-center space-x-2 rounded-lg bg-indigo-600 px-4 py-2 text-sm font-medium text-white hover:bg-indigo-700"
+          >
+            <Plus className="h-4 w-4" />
+            <span>상품 등록</span>
+          </Link>
+        </div>
       </div>
 
       {/* Search and Filters */}
