@@ -19,7 +19,7 @@ import { InventoryStatus } from '@seller-erp/types';
 @Controller('inventory')
 @UseGuards(TenantGuard, AuthGuard)
 export class InventoryController {
-  constructor(private readonly inventoryService: InventoryService) {}
+  constructor(private readonly inventoryService: InventoryService) { }
 
   @Post('items')
   createInventoryItem(
@@ -50,6 +50,30 @@ export class InventoryController {
     status?: InventoryStatus,
   ) {
     return this.inventoryService.getInventoryItems(tenantId, variantId, status);
+  }
+
+  @Get('variants')
+  getInventoryVariants(
+    @TenantId() tenantId: string,
+    @Query('page') page?: number,
+    @Query('limit') limit?: number,
+    @Query('search') search?: string,
+    @Query('status') status?: string,
+  ) {
+    return this.inventoryService.getInventoryVariants(tenantId, {
+      page,
+      limit,
+      search,
+      status,
+    });
+  }
+
+  @Get('variants/:id')
+  getInventoryVariantDetails(
+    @TenantId() tenantId: string,
+    @Param('id') id: string,
+  ) {
+    return this.inventoryService.getInventoryVariantDetails(tenantId, id);
   }
 
   @Get('alerts')

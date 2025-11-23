@@ -1,54 +1,94 @@
 "use client";
 
-import { useState } from "react";
-import { useRouter, useSearchParams } from "next/navigation";
+import { useState, useEffect } from "react";
+import { useRouter } from "next/navigation";
 import Link from "next/link";
-import { ArrowLeft } from "lucide-react";
-import { apiClientMutation } from "@/lib/api";
-import { ImageUpload } from "@/components/products/image-upload";
-import { VariantManager, ProductVariant } from "@/components/products/variant-manager";
+import { ArrowLeft, Search } from "lucide-react";
+import { apiClient, apiClientMutation } from "@/lib/api";
+import { ProductVariant, VariantManager } from "@/components/products/variant-manager";
 
-export default function NewProductPage() {
+export default function SimplifiedNewProductPage() {
   const router = useRouter();
-  const searchParams = useSearchParams();
-  const tenant = searchParams.get("tenant");
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState("");
+  const [catalogs, setCatalogs] = useState<any[]>([]);
+  const [searchCatalog, setSearchCatalog] = useState("");
+  const [selectedCatalog, setSelectedCatalog] = useState<any>(null);
+
   const [formData, setFormData] = useState({
-    name: "",
-    sku: "",
-    description: "",
-    category: "",
-    brand: "",
-    imageUrls: [] as string[],
+    catalogId: "",
+    price: 0,
+    consumerPrice: 0,
+    cost: 0,
+    isTaxExempt: false,
+    shippingType: "FREE",
+    shippingFee: 0,
+    isDisplayed: true,
     variants: [] as ProductVariant[],
   });
+
+  // 카탈로그 검색
+  useEffect(() => {
+    const timer = setTimeout(async () => {
+      if (searchCatalog.length > 0) {
+        try {
+          const data = await apiClient<any>(`/api/catalogs?search=${searchCatalog}&limit=10`);
+          setCatalogs(data.data);
+        } catch (error) {
+          console.error("Error searching catalogs:", error);
+        }
+      } else {
+        setCatalogs([]);
+      }
+    }, 300);
+
+    return () => clearTimeout(timer);
+  }, [searchCatalog]);
+
+  const handleSelectCatalog = (catalog: any) => {
+    setSelectedCatalog(catalog);
+    setFormData({
+      ...formData,
+      catalogId: catalog.id,
+      price: catalog.defaultPrice || 0,
+      consumerPrice: catalog.defaultPrice || 0,
+    });
+    setSearchCatalog("");
+    setCatalogs([]);
+  };
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     setLoading(true);
     setError("");
 
-    // 폼 검증
-    if (!formData.name.trim()) {
-      setError("상품명을 입력해주세요.");
-      setLoading(false);
-      return;
-    }
-    if (!formData.sku.trim()) {
-      setError("SKU를 입력해주세요.");
+    if (!selectedCatalog) {
+      setError("카탈로그를 선택해주세요.");
       setLoading(false);
       return;
     }
 
     try {
-      await apiClientMutation("/api/products", "POST", formData);
+      const payload = {
+        catalogId: formData.catalogId,
+        name: selectedCatalog.name,
+        sku: `${selectedCatalog.id}-${Date.now()}`,
+        description: selectedCatalog.description,
+        category: selectedCatalog.category,
+        brand: selectedCatalog.brand,
+        imageUrls: selectedCatalog.imageUrls,
+        price: Number(formData.price),
+        consumerPrice: Number(formData.consumerPrice),
+        cost: Number(formData.cost),
+        isTaxExempt: formData.isTaxExempt,
+        shippingType: formData.shippingType,
+        shippingFee: Number(formData.shippingFee),
+        isDisplayed: formData.isDisplayed,
+        variants: formData.variants,
+      };
 
-      // 성공 후 목록 페이지로 이동
-      const redirectUrl = tenant
-        ? `/dashboard/products?tenant=${tenant}`
-        : "/dashboard/products";
-      router.push(redirectUrl);
+      await apiClientMutation("/api/products", "POST", payload);
+      router.push("/dashboard/products");
     } catch (error: any) {
       console.error("Error creating product:", error);
       setError(error.message || "상품 등록에 실패했습니다.");
@@ -68,8 +108,8 @@ export default function NewProductPage() {
           <ArrowLeft className="h-4 w-4" />
           <span>상품 목록으로 돌아가기</span>
         </Link>
-        <h1 className="mt-4 text-3xl font-bold text-gray-900">새 상품 등록</h1>
-        <p className="text-gray-600 mt-2">새로운 상품 정보를 입력하세요</p>
+        <h1 className="mt-4 text-3xl font-bold text-gray-900">판매 상품 등록</h1>
+        <p className="text-gray-600 mt-2">카탈로그에서 상품을 선택하고 판매 조건을 설정하세요.</p>
       </div>
 
       {/* Error Message */}
@@ -80,95 +120,220 @@ export default function NewProductPage() {
       )}
 
       {/* Form */}
-      <form onSubmit={handleSubmit} className="max-w-2xl space-y-6">
-        <div className="rounded-lg border border-gray-200 bg-white p-6 space-y-6">
-          <div>
-            <label htmlFor="name" className="block text-sm font-medium text-gray-700">
-              상품명 <span className="text-red-500">*</span>
-            </label>
-            <input
-              type="text"
-              id="name"
-              required
-              value={formData.name}
-              onChange={(e) => setFormData({ ...formData, name: e.target.value })}
-              className="mt-1 block w-full rounded-md border border-gray-300 px-3 py-2 focus:border-indigo-500 focus:outline-none focus:ring-1 focus:ring-indigo-500"
-            />
-          </div>
+      <div className="max-w-3xl space-y-6">
+        {/* Catalog Selection */}
+        <div className="rounded-lg border border-gray-200 bg-white p-6 space-y-4">
+          <h2 className="text-lg font-semibold text-gray-900">1. 카탈로그 선택</h2>
 
-          <div>
-            <label htmlFor="sku" className="block text-sm font-medium text-gray-700">
-              SKU <span className="text-red-500">*</span>
-            </label>
-            <input
-              type="text"
-              id="sku"
-              required
-              value={formData.sku}
-              onChange={(e) => setFormData({ ...formData, sku: e.target.value })}
-              className="mt-1 block w-full rounded-md border border-gray-300 px-3 py-2 focus:border-indigo-500 focus:outline-none focus:ring-1 focus:ring-indigo-500"
-              placeholder="PROD-001"
-            />
-          </div>
+          {!selectedCatalog ? (
+            <div className="relative">
+              <div className="relative">
+                <div className="pointer-events-none absolute inset-y-0 left-0 flex items-center pl-3">
+                  <Search className="h-5 w-5 text-gray-400" />
+                </div>
+                <input
+                  type="text"
+                  placeholder="카탈로그 검색..."
+                  value={searchCatalog}
+                  onChange={(e) => setSearchCatalog(e.target.value)}
+                  className="block w-full rounded-md border border-gray-300 py-2 pl-10 pr-3 focus:border-indigo-500 focus:outline-none focus:ring-1 focus:ring-indigo-500"
+                />
+              </div>
 
-          <div>
-            <label htmlFor="description" className="block text-sm font-medium text-gray-700">
-              설명
-            </label>
-            <textarea
-              id="description"
-              rows={3}
-              value={formData.description}
-              onChange={(e) => setFormData({ ...formData, description: e.target.value })}
-              className="mt-1 block w-full rounded-md border border-gray-300 px-3 py-2 focus:border-indigo-500 focus:outline-none focus:ring-1 focus:ring-indigo-500"
-            />
-          </div>
-
-          <div className="grid grid-cols-2 gap-4">
-            <div>
-              <label htmlFor="category" className="block text-sm font-medium text-gray-700">
-                카테고리
-              </label>
-              <select
-                id="category"
-                value={formData.category}
-                onChange={(e) => setFormData({ ...formData, category: e.target.value })}
-                className="mt-1 block w-full rounded-md border border-gray-300 px-3 py-2 focus:border-indigo-500 focus:outline-none focus:ring-1 focus:ring-indigo-500"
+              {/* Search Results */}
+              {catalogs.length > 0 && (
+                <div className="mt-2 max-h-60 overflow-y-auto rounded-md border border-gray-200 bg-white shadow-lg">
+                  {catalogs.map((catalog) => (
+                    <button
+                      key={catalog.id}
+                      type="button"
+                      onClick={() => handleSelectCatalog(catalog)}
+                      className="w-full flex items-center px-4 py-3 hover:bg-gray-50 text-left border-b last:border-b-0"
+                    >
+                      {catalog.imageUrls?.[0] ? (
+                        <img
+                          src={catalog.imageUrls[0]}
+                          alt={catalog.name}
+                          className="h-10 w-10 rounded object-cover"
+                        />
+                      ) : (
+                        <div className="h-10 w-10 rounded bg-gray-200" />
+                      )}
+                      <div className="ml-3">
+                        <div className="text-sm font-medium text-gray-900">{catalog.name}</div>
+                        <div className="text-xs text-gray-500">{catalog.brand} / {catalog.category}</div>
+                      </div>
+                    </button>
+                  ))}
+                </div>
+              )}
+            </div>
+          ) : (
+            <div className="flex items-center justify-between rounded-lg border border-gray-200 bg-gray-50 p-4">
+              <div className="flex items-center">
+                {selectedCatalog.imageUrls?.[0] ? (
+                  <img
+                    src={selectedCatalog.imageUrls[0]}
+                    alt={selectedCatalog.name}
+                    className="h-16 w-16 rounded object-cover"
+                  />
+                ) : (
+                  <div className="h-16 w-16 rounded bg-gray-200" />
+                )}
+                <div className="ml-4">
+                  <div className="font-medium text-gray-900">{selectedCatalog.name}</div>
+                  <div className="text-sm text-gray-500">{selectedCatalog.description}</div>
+                </div>
+              </div>
+              <button
+                type="button"
+                onClick={() => {
+                  setSelectedCatalog(null);
+                  setFormData({ ...formData, catalogId: "" });
+                }}
+                className="text-sm text-indigo-600 hover:text-indigo-900"
               >
-                <option value="">선택하세요</option>
-                <option value="주얼리">주얼리</option>
-                <option value="카메라">카메라</option>
-                <option value="전자제품">전자제품</option>
-              </select>
+                변경
+              </button>
+            </div>
+          )}
+        </div>
+
+        {/* Pricing */}
+        {selectedCatalog && (
+          <div className="rounded-lg border border-gray-200 bg-white p-6 space-y-4">
+            <h2 className="text-lg font-semibold text-gray-900">2. 가격 설정</h2>
+
+            <div className="grid grid-cols-1 gap-4 sm:grid-cols-3">
+              <div>
+                <label className="block text-sm font-medium text-gray-700">
+                  판매가 <span className="text-red-500">*</span>
+                </label>
+                <div className="relative mt-1 rounded-md shadow-sm">
+                  <input
+                    type="number"
+                    required
+                    value={formData.price}
+                    onChange={(e) => setFormData({ ...formData, price: Number(e.target.value) })}
+                    className="block w-full rounded-md border border-gray-300 pl-3 pr-12 py-2 focus:border-indigo-500 focus:outline-none focus:ring-1 focus:ring-indigo-500"
+                  />
+                  <div className="pointer-events-none absolute inset-y-0 right-0 flex items-center pr-3">
+                    <span className="text-gray-500 sm:text-sm">원</span>
+                  </div>
+                </div>
+              </div>
+
+              <div>
+                <label className="block text-sm font-medium text-gray-700">
+                  정상가
+                </label>
+                <div className="relative mt-1 rounded-md shadow-sm">
+                  <input
+                    type="number"
+                    value={formData.consumerPrice}
+                    onChange={(e) => setFormData({ ...formData, consumerPrice: Number(e.target.value) })}
+                    className="block w-full rounded-md border border-gray-300 pl-3 pr-12 py-2 focus:border-indigo-500 focus:outline-none focus:ring-1 focus:ring-indigo-500"
+                  />
+                  <div className="pointer-events-none absolute inset-y-0 right-0 flex items-center pr-3">
+                    <span className="text-gray-500 sm:text-sm">원</span>
+                  </div>
+                </div>
+              </div>
+
+              <div>
+                <label className="block text-sm font-medium text-gray-700">
+                  원가
+                </label>
+                <div className="relative mt-1 rounded-md shadow-sm">
+                  <input
+                    type="number"
+                    value={formData.cost}
+                    onChange={(e) => setFormData({ ...formData, cost: Number(e.target.value) })}
+                    className="block w-full rounded-md border border-gray-300 pl-3 pr-12 py-2 focus:border-indigo-500 focus:outline-none focus:ring-1 focus:ring-indigo-500"
+                  />
+                  <div className="pointer-events-none absolute inset-y-0 right-0 flex items-center pr-3">
+                    <span className="text-gray-500 sm:text-sm">원</span>
+                  </div>
+                </div>
+              </div>
             </div>
 
-            <div>
-              <label htmlFor="brand" className="block text-sm font-medium text-gray-700">
-                브랜드
-              </label>
-              <input
-                type="text"
-                id="brand"
-                value={formData.brand}
-                onChange={(e) => setFormData({ ...formData, brand: e.target.value })}
-                className="mt-1 block w-full rounded-md border border-gray-300 px-3 py-2 focus:border-indigo-500 focus:outline-none focus:ring-1 focus:ring-indigo-500"
-              />
+            <div className="grid grid-cols-1 gap-4 sm:grid-cols-2">
+              <div>
+                <label className="block text-sm font-medium text-gray-700">
+                  배송비 유형
+                </label>
+                <select
+                  value={formData.shippingType}
+                  onChange={(e) => setFormData({ ...formData, shippingType: e.target.value })}
+                  className="mt-1 block w-full rounded-md border border-gray-300 px-3 py-2 focus:border-indigo-500 focus:outline-none focus:ring-1 focus:ring-indigo-500"
+                >
+                  <option value="FREE">무료 배송</option>
+                  <option value="FIXED">고정 배송비</option>
+                  <option value="CONDITIONAL">조건부 무료</option>
+                </select>
+              </div>
+
+              {formData.shippingType !== "FREE" && (
+                <div>
+                  <label className="block text-sm font-medium text-gray-700">
+                    배송비
+                  </label>
+                  <div className="relative mt-1 rounded-md shadow-sm">
+                    <input
+                      type="number"
+                      value={formData.shippingFee}
+                      onChange={(e) => setFormData({ ...formData, shippingFee: Number(e.target.value) })}
+                      className="block w-full rounded-md border border-gray-300 pl-3 pr-12 py-2 focus:border-indigo-500 focus:outline-none focus:ring-1 focus:ring-indigo-500"
+                    />
+                    <div className="pointer-events-none absolute inset-y-0 right-0 flex items-center pr-3">
+                      <span className="text-gray-500 sm:text-sm">원</span>
+                    </div>
+                  </div>
+                </div>
+              )}
+            </div>
+
+            <div className="flex items-center space-x-4">
+              <div className="flex items-center">
+                <input
+                  id="isTaxExempt"
+                  type="checkbox"
+                  checked={formData.isTaxExempt}
+                  onChange={(e) => setFormData({ ...formData, isTaxExempt: e.target.checked })}
+                  className="h-4 w-4 rounded border-gray-300 text-indigo-600 focus:ring-indigo-500"
+                />
+                <label htmlFor="isTaxExempt" className="ml-2 block text-sm text-gray-900">
+                  면세 상품
+                </label>
+              </div>
+
+              <div className="flex items-center">
+                <input
+                  id="isDisplayed"
+                  type="checkbox"
+                  checked={formData.isDisplayed}
+                  onChange={(e) => setFormData({ ...formData, isDisplayed: e.target.checked })}
+                  className="h-4 w-4 rounded border-gray-300 text-indigo-600 focus:ring-indigo-500"
+                />
+                <label htmlFor="isDisplayed" className="ml-2 block text-sm text-gray-900">
+                  즉시 진열
+                </label>
+              </div>
             </div>
           </div>
+        )}
 
-          {/* Image Upload */}
-          <ImageUpload
-            images={formData.imageUrls}
-            onChange={(urls) => setFormData({ ...formData, imageUrls: urls })}
-            maxImages={10}
-          />
-
-          {/* Variant Manager */}
-          <VariantManager
-            variants={formData.variants}
-            onChange={(variants) => setFormData({ ...formData, variants })}
-          />
-        </div>
+        {/* Variants */}
+        {selectedCatalog && (
+          <div className="rounded-lg border border-gray-200 bg-white p-6 space-y-4">
+            <h2 className="text-lg font-semibold text-gray-900">3. 옵션 설정 (선택)</h2>
+            <VariantManager
+              variants={formData.variants}
+              onChange={(variants) => setFormData({ ...formData, variants })}
+            />
+          </div>
+        )}
 
         {/* Actions */}
         <div className="flex items-center justify-end space-x-4">
@@ -179,15 +344,14 @@ export default function NewProductPage() {
             취소
           </Link>
           <button
-            type="submit"
-            disabled={loading}
-            className="rounded-lg bg-indigo-600 px-4 py-2 text-sm font-medium text-white hover:bg-indigo-700 disabled:opacity-50"
+            onClick={handleSubmit}
+            disabled={loading || !selectedCatalog}
+            className="rounded-lg bg-indigo-600 px-6 py-2 text-sm font-medium text-white hover:bg-indigo-700 disabled:opacity-50"
           >
             {loading ? "등록 중..." : "상품 등록"}
           </button>
         </div>
-      </form>
+      </div>
     </div>
   );
 }
-

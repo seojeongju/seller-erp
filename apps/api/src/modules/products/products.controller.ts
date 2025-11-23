@@ -10,7 +10,12 @@ import {
   UseGuards,
   ParseIntPipe,
   DefaultValuePipe,
+  UseInterceptors,
+  UploadedFile,
+  BadRequestException,
 } from '@nestjs/common';
+import { FileInterceptor } from '@nestjs/platform-express';
+import { Express } from 'express';
 import { ProductsService } from './products.service';
 import { CreateProductDto } from './dto/create-product.dto';
 import { UpdateProductDto } from './dto/update-product.dto';
@@ -96,6 +101,18 @@ export class ProductsController {
     @Param('variantId') variantId: string,
   ) {
     return this.productsService.removeVariant(tenantId, variantId);
+  }
+
+  @Post('bulk-upload')
+  @UseInterceptors(FileInterceptor('file'))
+  async bulkUpload(
+    @TenantId() tenantId: string,
+    @UploadedFile() file: Express.Multer.File,
+  ) {
+    if (!file) {
+      throw new BadRequestException('파일이 없습니다.');
+    }
+    return this.productsService.bulkUpload(tenantId, file.buffer);
   }
 }
 

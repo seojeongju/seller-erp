@@ -5,6 +5,7 @@ import { useRouter } from "next/navigation";
 import Link from "next/link";
 import { ArrowLeft, Download, Upload, AlertCircle, CheckCircle } from "lucide-react";
 import { apiClientMutation } from "@/lib/api";
+import { useSession } from "next-auth/react";
 
 export default function BulkUploadPage() {
     const router = useRouter();
@@ -17,6 +18,8 @@ export default function BulkUploadPage() {
         failed: number;
         errors: string[];
     } | null>(null);
+
+    const { data: session } = useSession();
 
     const handleDownloadTemplate = () => {
         // CSV 템플릿 생성
@@ -108,6 +111,11 @@ export default function BulkUploadPage() {
             return;
         }
 
+        if (!session?.user?.tenantSlug) {
+            setError("세션이 만료되었습니다. 다시 로그인해주세요.");
+            return;
+        }
+
         setLoading(true);
         setError("");
         setSuccess("");
@@ -116,13 +124,19 @@ export default function BulkUploadPage() {
             const formData = new FormData();
             formData.append("file", file);
 
-            const response = await fetch("/api/products/bulk-upload", {
+            const apiUrl = process.env.NEXT_PUBLIC_API_URL || "http://localhost:3001";
+            const response = await fetch(`${apiUrl}/products/bulk-upload`, {
                 method: "POST",
+                headers: {
+                    "x-tenant-slug": session.user.tenantSlug,
+                    // Content-Type은 FormData 전송 시 자동으로 설정됨 (boundary 포함)
+                },
                 body: formData,
             });
 
             if (!response.ok) {
-                throw new Error("업로드에 실패했습니다.");
+                const errorData = await response.json().catch(() => ({}));
+                throw new Error(errorData.message || "업로드에 실패했습니다.");
             }
 
             const result = await response.json();
