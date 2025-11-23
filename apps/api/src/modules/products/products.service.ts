@@ -8,7 +8,7 @@ import { PaginationParams } from '@seller-erp/types';
 
 @Injectable()
 export class ProductsService {
-  constructor(private prisma: PrismaService) {}
+  constructor(private prisma: PrismaService) { }
 
   async create(tenantId: string, createProductDto: CreateProductDto) {
     return this.prisma.product.create({
@@ -22,14 +22,52 @@ export class ProductsService {
     });
   }
 
-  async findAll(tenantId: string, pagination?: PaginationParams) {
-    const page = pagination?.page || 1;
-    const limit = pagination?.limit || 10;
+  async findAll(
+    tenantId: string,
+    params?: PaginationParams & {
+      search?: string;
+      category?: string;
+      brand?: string;
+      sortBy?: string;
+      sortOrder?: 'asc' | 'desc';
+    },
+  ) {
+    const page = params?.page || 1;
+    const limit = params?.limit || 10;
     const skip = (page - 1) * limit;
+
+    // Build where clause
+    const where: any = { tenantId };
+
+    // Search by name or SKU
+    if (params?.search) {
+      where.OR = [
+        { name: { contains: params.search, mode: 'insensitive' } },
+        { sku: { contains: params.search, mode: 'insensitive' } },
+      ];
+    }
+
+    // Filter by category
+    if (params?.category) {
+      where.category = params.category;
+    }
+
+    // Filter by brand
+    if (params?.brand) {
+      where.brand = params.brand;
+    }
+
+    // Build orderBy clause
+    const orderBy: any = {};
+    if (params?.sortBy) {
+      orderBy[params.sortBy] = params.sortOrder || 'asc';
+    } else {
+      orderBy.createdAt = 'desc'; // Default sort
+    }
 
     const [data, total] = await Promise.all([
       this.prisma.product.findMany({
-        where: { tenantId },
+        where,
         include: {
           variants: {
             select: {
@@ -44,12 +82,10 @@ export class ProductsService {
         },
         skip,
         take: limit,
-        orderBy: {
-          createdAt: 'desc',
-        },
+        orderBy,
       }),
       this.prisma.product.count({
-        where: { tenantId },
+        where,
       }),
     ]);
 

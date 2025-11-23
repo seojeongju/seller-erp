@@ -23,7 +23,7 @@ import { TenantId } from '../../common/decorators/tenant.decorator';
 @Controller('products')
 @UseGuards(TenantGuard, AuthGuard)
 export class ProductsController {
-  constructor(private readonly productsService: ProductsService) {}
+  constructor(private readonly productsService: ProductsService) { }
 
   @Post()
   create(@TenantId() tenantId: string, @Body() createProductDto: CreateProductDto) {
@@ -35,8 +35,21 @@ export class ProductsController {
     @TenantId() tenantId: string,
     @Query('page', new DefaultValuePipe(1), ParseIntPipe) page: number,
     @Query('limit', new DefaultValuePipe(10), ParseIntPipe) limit: number,
+    @Query('search') search?: string,
+    @Query('category') category?: string,
+    @Query('brand') brand?: string,
+    @Query('sortBy') sortBy?: string,
+    @Query('sortOrder') sortOrder?: 'asc' | 'desc',
   ) {
-    return this.productsService.findAll(tenantId, { page, limit });
+    return this.productsService.findAll(tenantId, {
+      page,
+      limit,
+      search,
+      category,
+      brand,
+      sortBy,
+      sortOrder,
+    });
   }
 
   @Get(':id')
