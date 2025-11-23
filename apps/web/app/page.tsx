@@ -4,6 +4,7 @@ import Link from "next/link";
 import Image from "next/image";
 import { motion } from "framer-motion";
 import { Globe, Zap, Shield, Smartphone, Search, Mail } from "lucide-react";
+// Deployment trigger
 
 export default function HomePage() {
   return (
