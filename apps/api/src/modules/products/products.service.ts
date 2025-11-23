@@ -11,14 +11,36 @@ export class ProductsService {
   constructor(private prisma: PrismaService) { }
 
   async create(tenantId: string, createProductDto: CreateProductDto) {
-    return this.prisma.product.create({
-      data: {
-        ...createProductDto,
-        tenantId,
-      },
-      include: {
-        variants: true,
-      },
+    const { variants, ...productData } = createProductDto;
+
+    // 트랜잭션으로 상품과 변형을 함께 생성
+    return this.prisma.$transaction(async (prisma) => {
+      // 상품 생성
+      const product = await prisma.product.create({
+        data: {
+          ...productData,
+          tenantId,
+        },
+      });
+
+      // 변형이 있으면 함께 생성
+      if (variants && variants.length > 0) {
+        await prisma.productVariant.createMany({
+          data: variants.map((variant) => ({
+            ...variant,
+            productId: product.id,
+            tenantId,
+          })),
+        });
+      }
+
+      // 변형 정보를 포함하여 반환
+      return prisma.product.findUnique({
+        where: { id: product.id },
+        include: {
+          variants: true,
+        },
+      });
     });
   }
 

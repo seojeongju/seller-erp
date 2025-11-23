@@ -1,4 +1,6 @@
-import { IsString, IsOptional, IsArray, IsNotEmpty } from 'class-validator';
+import { IsString, IsOptional, IsArray, IsNotEmpty, ValidateNested } from 'class-validator';
+import { Type } from 'class-transformer';
+import { CreateProductVariantDto } from './create-product-variant.dto';
 
 export class CreateProductDto {
   @IsString()
@@ -25,5 +27,11 @@ export class CreateProductDto {
   @IsString({ each: true })
   @IsOptional()
   imageUrls?: string[];
+
+  @IsArray()
+  @ValidateNested({ each: true })
+  @Type(() => CreateProductVariantDto)
+  @IsOptional()
+  variants?: CreateProductVariantDto[];
 }
 

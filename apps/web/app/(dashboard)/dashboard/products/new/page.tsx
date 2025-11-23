@@ -6,6 +6,7 @@ import Link from "next/link";
 import { ArrowLeft } from "lucide-react";
 import { apiClientMutation } from "@/lib/api";
 import { ImageUpload } from "@/components/products/image-upload";
+import { VariantManager, ProductVariant } from "@/components/products/variant-manager";
 
 export default function NewProductPage() {
   const router = useRouter();
@@ -20,6 +21,7 @@ export default function NewProductPage() {
     category: "",
     brand: "",
     imageUrls: [] as string[],
+    variants: [] as ProductVariant[],
   });
 
   const handleSubmit = async (e: React.FormEvent) => {
@@ -41,9 +43,9 @@ export default function NewProductPage() {
 
     try {
       await apiClientMutation("/api/products", "POST", formData);
-      
+
       // 성공 후 목록 페이지로 이동
-      const redirectUrl = tenant 
+      const redirectUrl = tenant
         ? `/dashboard/products?tenant=${tenant}`
         : "/dashboard/products";
       router.push(redirectUrl);
@@ -159,6 +161,12 @@ export default function NewProductPage() {
             images={formData.imageUrls}
             onChange={(urls) => setFormData({ ...formData, imageUrls: urls })}
             maxImages={10}
+          />
+
+          {/* Variant Manager */}
+          <VariantManager
+            variants={formData.variants}
+            onChange={(variants) => setFormData({ ...formData, variants })}
           />
         </div>
 
