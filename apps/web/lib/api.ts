@@ -20,11 +20,11 @@ export async function apiClient<T>(
   });
 
   if (!response.ok) {
-    const error = await response.json().catch(() => ({ message: "Unknown error" }));
-    throw new Error(error.message || `HTTP error! status: ${response.status}`);
+    const errorData = await response.json().catch(() => ({ message: "Unknown error" })) as { message?: string };
+    throw new Error(errorData.message || `HTTP error! status: ${response.status}`);
   }
 
-  const data = await response.json();
+  const data = await response.json() as { data?: T } & T;
   return data.data || data;
 }
 
@@ -61,11 +61,11 @@ export async function apiServer<T>(
       if (response.status === 404 || response.status >= 500) {
         throw new Error(`API error: ${response.status}`);
       }
-      const error = await response.json().catch(() => ({ message: "Unknown error" }));
-      throw new Error(error.message || `HTTP error! status: ${response.status}`);
+      const errorData = await response.json().catch(() => ({ message: "Unknown error" })) as { message?: string };
+      throw new Error(errorData.message || `HTTP error! status: ${response.status}`);
     }
 
-    const data = await response.json();
+    const data = await response.json() as { data?: T } & T;
     return data.data || data;
   } catch (error) {
     // 네트워크 오류나 기타 에러는 다시 throw하여 호출하는 쪽에서 처리
@@ -92,10 +92,10 @@ export async function apiClientMutation<T>(
   });
 
   if (!response.ok) {
-    const error = await response.json().catch(() => ({ message: "Unknown error" }));
-    throw new Error(error.message || `HTTP error! status: ${response.status}`);
+    const errorData = await response.json().catch(() => ({ message: "Unknown error" })) as { message?: string };
+    throw new Error(errorData.message || `HTTP error! status: ${response.status}`);
   }
 
-  const result = await response.json();
+  const result = await response.json() as { data?: T } & T;
   return result.data || result;
 }
