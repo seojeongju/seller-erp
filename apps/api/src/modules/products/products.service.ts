@@ -8,6 +8,22 @@ import { PaginationParams } from '@seller-erp/types';
 import { Prisma } from '@prisma/client';
 import { parse } from 'csv-parse/sync';
 
+// D1 호환성을 위한 JSON 파싱 헬퍼
+const safeParse = (value: string | null, defaultValue: any) => {
+  if (!value) return defaultValue;
+  try {
+    return JSON.parse(value);
+  } catch {
+    return value; // 파싱 실패 시 원본 반환 (혹은 defaultValue)
+  }
+};
+
+const safeStringify = (value: any, defaultValue: string = '[]') => {
+  if (value === undefined || value === null) return defaultValue;
+  if (typeof value === 'string') return value; // 이미 문자열이면 그대로
+  return JSON.stringify(value);
+};
+
 @Injectable()
 export class ProductsService {
   constructor(private prisma: PrismaService) { }
@@ -15,14 +31,20 @@ export class ProductsService {
   async create(tenantId: string, createProductDto: CreateProductDto) {
     const { variants, ...productData } = createProductDto;
 
+    // D1 호환: Array/Object -> JSON String 변환
+    const dbData = {
+      ...productData,
+      imageUrls: safeStringify(productData.imageUrls, '[]'),
+      tags: safeStringify(productData.tags, '[]'),
+      noticeInfo: safeStringify(productData.noticeInfo, '{}'),
+      tenantId,
+    };
+
     // 트랜잭션으로 상품과 변형을 함께 생성
-    return this.prisma.$transaction(async (prisma) => {
+    const product = await this.prisma.$transaction(async (prisma) => {
       // 상품 생성
-      const product = await prisma.product.create({
-        data: {
-          ...productData,
-          tenantId,
-        },
+      const createdProduct = await prisma.product.create({
+        data: dbData as any, // Prisma 타입 불일치 회피
       });
 
       // 변형이 있으면 함께 생성
@@ -30,20 +52,18 @@ export class ProductsService {
         await prisma.productVariant.createMany({
           data: variants.map((variant) => ({
             ...variant,
-            productId: product.id,
+            attributes: safeStringify(variant.attributes, '{}'),
+            productId: createdProduct.id,
             tenantId,
           })),
         });
       }
 
-      // 변형 정보를 포함하여 반환
-      return prisma.product.findUnique({
-        where: { id: product.id },
-        include: {
-          variants: true,
-        },
-      });
+      return createdProduct;
     });
+
+    // 결과 반환 시 다시 객체로 변환하여 리턴
+    return this.findOne(tenantId, product.id);
   }
 
   async findAll(
@@ -66,8 +86,8 @@ export class ProductsService {
     // Search by name or SKU
     if (params?.search) {
       where.OR = [
-        { name: { contains: params.search, mode: 'insensitive' } },
-        { sku: { contains: params.search, mode: 'insensitive' } },
+        { name: { contains: params.search } }, // SQLite는 mode: insensitive 지원 미약하지만 일단 제거하거나 유지. Prisma가 매핑해줄 수도 있음.
+        { sku: { contains: params.search } },
       ];
     }
 
@@ -113,8 +133,16 @@ export class ProductsService {
       }),
     ]);
 
+    // DB JSON String -> Object 변환
+    const transformedData = data.map(product => ({
+      ...product,
+      imageUrls: safeParse(product.imageUrls, []),
+      tags: safeParse(product.tags, []),
+      noticeInfo: safeParse(product.noticeInfo, {}),
+    }));
+
     return {
-      data,
+      data: transformedData,
       pagination: {
         page,
         limit,
@@ -147,7 +175,19 @@ export class ProductsService {
       throw new NotFoundException('상품을 찾을 수 없습니다.');
     }
 
-    return product;
+    // 변형 데이터 파싱
+    const variants = product.variants.map(v => ({
+      ...v,
+      attributes: safeParse(v.attributes as string, {}),
+    }));
+
+    return {
+      ...product,
+      imageUrls: safeParse(product.imageUrls, []),
+      tags: safeParse(product.tags, []),
+      noticeInfo: safeParse(product.noticeInfo, {}),
+      variants,
+    };
   }
 
   async update(
@@ -163,13 +203,17 @@ export class ProductsService {
       throw new NotFoundException('상품을 찾을 수 없습니다.');
     }
 
-    return this.prisma.product.update({
+    const dbData: any = { ...updateProductDto };
+    if (dbData.imageUrls) dbData.imageUrls = safeStringify(dbData.imageUrls);
+    if (dbData.tags) dbData.tags = safeStringify(dbData.tags);
+    if (dbData.noticeInfo) dbData.noticeInfo = safeStringify(dbData.noticeInfo);
+
+    await this.prisma.product.update({
       where: { id },
-      data: updateProductDto,
-      include: {
-        variants: true,
-      },
+      data: dbData,
     });
+
+    return this.findOne(tenantId, id);
   }
 
   async remove(tenantId: string, id: string) {
@@ -204,9 +248,10 @@ export class ProductsService {
     return this.prisma.productVariant.create({
       data: {
         ...createVariantDto,
+        attributes: safeStringify(createVariantDto.attributes, '{}'),
         productId,
         tenantId,
-      },
+      } as any,
     });
   }
 
@@ -223,9 +268,12 @@ export class ProductsService {
       throw new NotFoundException('상품 옵션을 찾을 수 없습니다.');
     }
 
+    const dbData: any = { ...updateVariantDto };
+    if (dbData.attributes) dbData.attributes = safeStringify(dbData.attributes);
+
     return this.prisma.productVariant.update({
       where: { id: variantId },
-      data: updateVariantDto,
+      data: dbData,
     });
   }
 
@@ -298,7 +346,7 @@ export class ProductsService {
           }
 
           // 이미지 URL 처리
-          const imageUrls = [
+          const imageUrlsArr = [
             firstRow['이미지URL1'],
             firstRow['이미지URL2'],
             firstRow['이미지URL3'],
@@ -313,7 +361,9 @@ export class ProductsService {
               description: firstRow['설명'] || '',
               category: firstRow['카테고리'] || '',
               brand: firstRow['브랜드'] || '',
-              imageUrls,
+              imageUrls: JSON.stringify(imageUrlsArr), // Stringify
+              noticeInfo: '{}', // Default JSON object
+              tags: '[]', // Default array
             },
           });
 
@@ -339,7 +389,7 @@ export class ProductsService {
                 cost: new Prisma.Decimal(cost),
                 quantity,
                 trackSerialNumbers,
-                attributes: {}, // 기본값
+                attributes: '{}', // 기본값 Stringified
               },
             });
           }

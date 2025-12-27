@@ -6,8 +6,8 @@ generator client {
 }
 
 datasource db {
-  provider = "sqlite"
-  url      = "file:./dev.db"
+  provider = "postgresql"
+  url      = env("DATABASE_URL")
 }
 
 // ============================================
@@ -43,14 +43,17 @@ model Tenant {
   @@map("tenants")
 }
 
-// Enum 삭제됨: UserRole (SQLite 미지원)
+enum UserRole {
+  ADMIN // 테넌트 관리자
+  MEMBER // 일반 사용자
+}
 
 model User {
   id       String   @id @default(cuid())
   email    String
   name     String?
   password String // 해시된 비밀번호
-  role     String @default("MEMBER") // UserRole -> String
+  role     UserRole @default(MEMBER)
 
   // 테넌트 관계 (필수)
   tenantId String
@@ -117,37 +120,23 @@ model Product {
   brand       String?
 
   // 이미지
-  imageUrls String @default("[]") // SQLite에서는 JSON 문자열로 처리됨 (Prisma가 처리) -> 아님. Scalar list는 SQLite 미지원.
-  // SQLite는 Scalar List 지원 안함. Json으로 바꿔야 함? 
-  // Prisma + SQLite에서는 String[] 지원이 안됨. 
-  // 대안 1: 별도 테이블. 대안 2: String으로 저장하고 구분자 사용.
-  // 여기선 간단하게 imageUrls를 String으로 바꾸거나 Json으로 바꿔야 함.
-  // 기존 코드 호환성을 위해 Json으로 바꾸는 것이 나을 듯. 아니면 String으로 하고 콤마 구분?
-  // Prisma 공식 문서: SQLite does not support scalar lists.
-  // Json 타입은 지원함.
-  // 따라서 imageUrls String[] -> imageUrls String (comma separated) or Json.
-  // 기존 코드 수정을 최소화하려면... Json이 나을듯. 하지만 타입이 바뀜.
-  // 일단 여기서는 에러를 피하기 위해 String으로 변경하고 주석 남김.
-  // 혹은, Relation으로 빼는게 정석임. ProductImage 모델 추가.
-  // Phase 1이니까 일단 Json으로 처리하는게 제일 빠름.
+  imageUrls String[] @default([])
 
   // 가격 정보 (옵션이 없는 경우를 위한 기본값, 옵션이 있으면 옵션 가격이 우선)
-  price         Decimal? // @db.Decimal 제거
-  consumerPrice Decimal?
-  cost          Decimal?
+  price         Decimal? @db.Decimal(10, 2) // 판매가
+  consumerPrice Decimal? @db.Decimal(10, 2) // 정상가 (소비자가)
+  cost          Decimal? @db.Decimal(10, 2) // 매입가/원가
   isTaxExempt   Boolean  @default(false) // 면세 여부
 
   // 배송 설정
   shippingType String?  @default("FREE") // FREE, FIXED, CONDITIONAL
-  shippingFee  Decimal? @default(0)
+  shippingFee  Decimal? @default(0) @db.Decimal(10, 2)
 
   // 상품 정보 제공 고시 (JSON)
-  noticeInfo String? @default("{}")
+  noticeInfo Json? @default("{}")
 
   // SEO 및 검색
-  // tags            String[] @default([]) // SQLite Scalar List 미지원
-  tags            String? // 콤마로 구분된 문자열로 저장한다고 가정
-
+  tags            String[] @default([])
   metaTitle       String?
   metaDescription String?
 
@@ -181,14 +170,13 @@ model ProductCatalog {
   description String?
   category    String?
   brand       String?
-  // imageUrls   String[] @default([]) // Scalar List 미지원
-  imageUrls   String? 
+  imageUrls   String[] @default([])
 
   // 기본 스펙 정보
-  specifications String? @default("{}")
+  specifications Json? @default("{}")
 
   // 기준 가격 (참고용)
-  defaultPrice Decimal?
+  defaultPrice Decimal? @db.Decimal(10, 2)
 
   // 테넌트
   tenantId String
@@ -210,11 +198,11 @@ model ProductVariant {
   sku  String? // Variant별 SKU
 
   // 옵션 속성 (JSON으로 저장)
-  attributes String @default("{}") // 예: {"size": "7", "color": "gold"}
+  attributes Json @default("{}") // 예: {"size": "7", "color": "gold"}
 
   // 가격 및 재고
-  price    Decimal 
-  cost     Decimal? 
+  price    Decimal  @db.Decimal(10, 2)
+  cost     Decimal? @db.Decimal(10, 2) // 원가
   quantity Int      @default(0) // 현재 재고 수량
 
   // 시리얼 넘버 추적 여부
@@ -251,7 +239,7 @@ model InventoryItem {
   lotNumber    String?
 
   // 상태
-  status String @default("AVAILABLE") // InventoryStatus -> String
+  status InventoryStatus @default(AVAILABLE)
 
   // 입고 정보
   receivedDate DateTime?
@@ -282,24 +270,36 @@ model InventoryItem {
   @@map("inventory_items")
 }
 
-// Enum 삭제됨: InventoryStatus
+enum InventoryStatus {
+  AVAILABLE // 사용 가능
+  RESERVED // 예약됨 (주문에 연결됨)
+  SOLD // 판매됨
+  DAMAGED // 손상됨
+  RETURNED // 반품됨
+}
 
 // ============================================
 // 주문 관리 모델
 // ============================================
 
-// Enum 삭제됨: OrderStatus
+enum OrderStatus {
+  PENDING // 대기
+  PROCESSING // 처리중
+  COMPLETED // 완료
+  CANCELLED // 취소
+  REFUNDED // 환불됨
+}
 
 model Order {
   id          String      @id @default(cuid())
   orderNumber String      @unique // 주문 번호 (예: ORD-2024-001)
-  status      String @default("PENDING") // OrderStatus -> String
+  status      OrderStatus @default(PENDING)
 
   // 금액 정보
-  subtotal Decimal 
-  tax      Decimal @default(0) 
-  discount Decimal @default(0) 
-  total    Decimal 
+  subtotal Decimal @db.Decimal(10, 2)
+  tax      Decimal @default(0) @db.Decimal(10, 2)
+  discount Decimal @default(0) @db.Decimal(10, 2)
+  total    Decimal @db.Decimal(10, 2)
 
   // 배송 정보
   shippingAddress String?
@@ -337,8 +337,8 @@ model OrderItem {
 
   // 수량 및 가격
   quantity   Int
-  unitPrice  Decimal 
-  totalPrice Decimal // quantity * unitPrice
+  unitPrice  Decimal @db.Decimal(10, 2)
+  totalPrice Decimal @db.Decimal(10, 2) // quantity * unitPrice
 
   // 주문 관계 (필수)
   orderId String
@@ -365,3 +365,9 @@ model OrderItem {
   @@index([variantId])
   @@map("order_items")
 }
+
+// ============================================
+// 테넌트 관계 추가 (Prisma 관계 완성)
+// ============================================
+
+// Tenant 모델에 관계 추가 (위에서 이미 정의됨)

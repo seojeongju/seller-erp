@@ -2,7 +2,7 @@ import { getSession } from "next-auth/react";
 import { authOptions } from "@/lib/auth-options";
 import { getServerSession } from "next-auth";
 
-const API_URL = process.env.NEXT_PUBLIC_API_URL || "http://localhost:3001";
+const API_URL = process.env.NEXT_PUBLIC_API_URL || "/api";
 
 // 클라이언트 사이드 API 호출
 export async function apiClient<T>(
@@ -39,7 +39,18 @@ export async function apiServer<T>(
     const session = await getServerSession(authOptions);
     const tenantSlug = session?.user?.tenantSlug || "";
 
-    const response = await fetch(`${API_URL}${endpoint}`, {
+    // 서버 사이드에서는 상대 경로(/api)를 사용할 수 없으므로 절대 경로로 변환 필요
+    const baseUrl = API_URL.startsWith("http")
+      ? API_URL
+      : process.env.NEXTAUTH_URL
+        ? `${process.env.NEXTAUTH_URL}/api`
+        : "http://localhost:3000/api";
+
+    // endpoint가 /api로 시작하면 중복 제거
+    const finalEndpoint = endpoint.startsWith("/api") ? endpoint.substring(4) : endpoint;
+    const url = API_URL.startsWith("http") ? `${API_URL}${endpoint}` : `${baseUrl}${finalEndpoint}`;
+
+    const response = await fetch(url, {
       ...options,
       headers: {
         "Content-Type": "application/json",
