@@ -8,7 +8,7 @@
   ],
   "scripts": {
     "build": "turbo run build",
-    "build:vercel": "npm install --legacy-peer-deps && npm run db:generate && cd apps/web && npm run build",
+    "pages:build": "turbo run pages:build",
     "dev": "turbo run dev",
     "lint": "turbo run lint",
     "format": "prettier --write \"**/*.{ts,tsx,md}\"",
@@ -32,4 +32,3 @@
     "npm": ">=8.0.0"
   }
 }
-
