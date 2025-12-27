@@ -128,7 +128,7 @@ export async function POST(request: NextRequest) {
 
         const newProduct = await prisma.$transaction(async (tx) => {
             const product = await tx.product.create({
-                data: dbData,
+                data: dbData as any,
             });
 
             if (variants && variants.length > 0) {
