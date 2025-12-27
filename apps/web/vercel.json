@@ -1,7 +1,5 @@
 {
-  "buildCommand": "npm run build:vercel",
-  "installCommand": "cd ../.. && npm install --legacy-peer-deps",
-  "framework": "nextjs",
-  "regions": ["icn1"],
-  "outputDirectory": ".next"
+  "installCommand": "echo 'Skipping Vercel install command...'",
+  "buildCommand": "pnpm run prebuild && next build",
+  "framework": "nextjs"
 }
