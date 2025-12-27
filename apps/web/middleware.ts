@@ -1,10 +1,9 @@
 import { NextResponse } from "next/server";
 import type { NextRequest } from "next/server";
-import { auth } from "@/auth";
+// import { auth } from "@/auth";
 
-const authMiddleware = auth(async function middleware(request: NextRequest) {
+export default async function middleware(request: NextRequest) {
   const { pathname } = request.nextUrl;
-  const session = (request as any).auth;
 
   // 정적 파일과 API 라우트는 제외
   if (
@@ -36,22 +35,15 @@ const authMiddleware = auth(async function middleware(request: NextRequest) {
     return NextResponse.next();
   }
 
-  // 대시보드 경로는 인증 필요
-  if (pathname.startsWith("/dashboard")) {
-    if (!session) {
-      const signInUrl = new URL("/auth/signin", request.url);
-      signInUrl.searchParams.set("callbackUrl", pathname);
-      if (tenantSlug && tenantSlug !== "localhost") {
-        signInUrl.searchParams.set("tenant", tenantSlug);
-      }
-      return NextResponse.redirect(signInUrl);
-    }
+  /**
+   * [DEBUG] 500 에러 디버깅을 위해 인증 로직 임시 비활성화
+   * Auth.js 초기화 문제로 추정되므로, 미들웨어에서 auth 감싸기를 제거함.
+   */
 
-    // 테넌트 슬러그를 헤더에 추가
-    const response = NextResponse.next();
-    response.headers.set("x-tenant-slug", session.user?.tenantSlug || "");
-    return response;
-  }
+  // if (pathname.startsWith("/dashboard")) {
+  //   // 인증 체크 로직 임시 주석 처리
+  //   // ...
+  // }
 
   // 테넌트 슬러그를 헤더에 추가
   const response = NextResponse.next();
@@ -60,18 +52,6 @@ const authMiddleware = auth(async function middleware(request: NextRequest) {
   }
 
   return response;
-});
-
-export default async function middleware(req: NextRequest, event: any) {
-  try {
-    return await authMiddleware(req, event);
-  } catch (e) {
-    console.error("Middleware Auth Error:", e);
-    // Fallback: 오류 발생 시 홈이나 에러 페이지로 리다이렉트하거나 통과
-    // 무한 루프 방지를 위해 단순히 next() 반환하거나 특정 경로로?
-    // 여기서는 일단 통과시키되 로그를 찍음
-    return NextResponse.next();
-  }
 }
 
 export const config = {
