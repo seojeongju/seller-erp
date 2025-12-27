@@ -34,13 +34,13 @@ export function ImageUpload({ images, onChange, maxImages = 10 }: ImageUploadPro
 
         // next-auth/react는 클라이언트 컴포넌트에서만 사용 가능
         const API_URL = process.env.NEXT_PUBLIC_API_URL || "http://localhost:3001";
-        
+
         // 세션에서 tenantSlug 가져오기
         let tenantSlug = "";
         try {
           const sessionResponse = await fetch("/api/auth/session");
           if (sessionResponse.ok) {
-            const session = await sessionResponse.json();
+            const session = await sessionResponse.json() as { user?: { tenantSlug?: string } };
             tenantSlug = session?.user?.tenantSlug || "";
           }
         } catch (e) {
@@ -56,16 +56,17 @@ export function ImageUpload({ images, onChange, maxImages = 10 }: ImageUploadPro
         });
 
         if (!response.ok) {
-          const error = await response.json().catch(() => ({ message: "업로드 실패" }));
-          throw new Error(error.message || "이미지 업로드에 실패했습니다.");
+          const errorData = await response.json().catch(() => ({ message: "업로드 실패" })) as { message?: string };
+          throw new Error(errorData.message || "이미지 업로드에 실패했습니다.");
         }
 
-        const result = await response.json();
+        const result = await response.json() as { url?: string; data?: { url?: string } };
         return result.url || result.data?.url;
       });
 
       const uploadedUrls = await Promise.all(uploadPromises);
-      onChange([...images, ...uploadedUrls]);
+      const validUrls = uploadedUrls.filter((url): url is string => !!url);
+      onChange([...images, ...validUrls]);
     } catch (err: any) {
       setError(err.message || "이미지 업로드에 실패했습니다.");
     } finally {
