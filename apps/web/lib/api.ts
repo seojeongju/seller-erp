@@ -1,6 +1,5 @@
 import { getSession } from "next-auth/react";
-import { authOptions } from "@/lib/auth-options";
-import { getServerSession } from "next-auth";
+import { auth } from "@/auth";
 
 const API_URL = process.env.NEXT_PUBLIC_API_URL || "/api";
 
@@ -36,14 +35,14 @@ export async function apiServer<T>(
   options: RequestInit = {}
 ): Promise<T> {
   try {
-    const session = await getServerSession(authOptions);
+    const session = await auth();
     const tenantSlug = session?.user?.tenantSlug || "";
 
     // 서버 사이드에서는 상대 경로(/api)를 사용할 수 없으므로 절대 경로로 변환 필요
     const baseUrl = API_URL.startsWith("http")
       ? API_URL
-      : process.env.NEXTAUTH_URL
-        ? `${process.env.NEXTAUTH_URL}/api`
+      : process.env.AUTH_URL
+        ? `${process.env.AUTH_URL}/api`
         : "http://localhost:3000/api";
 
     // endpoint가 /api로 시작하면 중복 제거
@@ -103,4 +102,3 @@ export async function apiClientMutation<T>(
   const result = await response.json();
   return result.data || result;
 }
-

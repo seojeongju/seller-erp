@@ -1,9 +1,10 @@
 import { NextResponse } from "next/server";
 import type { NextRequest } from "next/server";
-import { getToken } from "next-auth/jwt";
+import { auth } from "@/auth";
 
-export async function middleware(request: NextRequest) {
+export default auth(async function middleware(request: NextRequest) {
   const { pathname } = request.nextUrl;
+  const session = (request as any).auth;
 
   // 정적 파일과 API 라우트는 제외
   if (
@@ -37,12 +38,7 @@ export async function middleware(request: NextRequest) {
 
   // 대시보드 경로는 인증 필요
   if (pathname.startsWith("/dashboard")) {
-    const token = await getToken({
-      req: request,
-      secret: process.env.NEXTAUTH_SECRET,
-    });
-
-    if (!token) {
+    if (!session) {
       const signInUrl = new URL("/auth/signin", request.url);
       signInUrl.searchParams.set("callbackUrl", pathname);
       if (tenantSlug && tenantSlug !== "localhost") {
@@ -51,9 +47,9 @@ export async function middleware(request: NextRequest) {
       return NextResponse.redirect(signInUrl);
     }
 
-    // 테넌트 슬러그를 헤더에 추가 (개발 환경에서는 토큰의 tenantSlug 사용)
+    // 테넌트 슬러그를 헤더에 추가
     const response = NextResponse.next();
-    response.headers.set("x-tenant-slug", token.tenantSlug as string);
+    response.headers.set("x-tenant-slug", session.user?.tenantSlug || "");
     return response;
   }
 
@@ -64,7 +60,7 @@ export async function middleware(request: NextRequest) {
   }
 
   return response;
-}
+});
 
 export const config = {
   matcher: [
@@ -78,4 +74,3 @@ export const config = {
     "/((?!_next/static|_next/image|favicon.ico).*)",
   ],
 };
-

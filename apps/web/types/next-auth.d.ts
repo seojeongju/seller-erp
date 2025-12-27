@@ -1,5 +1,5 @@
-import { UserRole } from "@seller-erp/types";
 import "next-auth";
+import "next-auth/jwt";
 
 declare module "next-auth" {
   interface Session {
@@ -7,7 +7,7 @@ declare module "next-auth" {
       id: string;
       email: string;
       name?: string | null;
-      role: UserRole;
+      role: string;
       tenantId: string;
       tenantSlug: string;
     };
@@ -17,7 +17,7 @@ declare module "next-auth" {
     id: string;
     email: string;
     name?: string | null;
-    role: UserRole;
+    role: string;
     tenantId: string;
     tenantSlug: string;
   }
@@ -26,9 +26,8 @@ declare module "next-auth" {
 declare module "next-auth/jwt" {
   interface JWT {
     id: string;
-    role: UserRole;
+    role: string;
     tenantId: string;
     tenantSlug: string;
   }
 }
-

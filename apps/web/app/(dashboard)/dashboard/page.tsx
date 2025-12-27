@@ -1,6 +1,5 @@
 import { redirect } from "next/navigation";
-import { getServerSession } from "next-auth";
-import { authOptions } from "@/lib/auth-options";
+import { auth } from "@/auth";
 import { apiServer } from "@/lib/api";
 import { KPICards } from "@/components/dashboard/kpi-cards";
 import { RecentOrders } from "@/components/dashboard/recent-orders";
@@ -9,7 +8,7 @@ import { TopProducts } from "@/components/dashboard/top-products";
 
 export default async function DashboardPage() {
   try {
-    const session = await getServerSession(authOptions);
+    const session = await auth();
 
     if (!session) {
       redirect("/auth/signin");
