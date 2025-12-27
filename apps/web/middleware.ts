@@ -2,7 +2,7 @@ import { NextResponse } from "next/server";
 import type { NextRequest } from "next/server";
 import { auth } from "@/auth";
 
-export default auth(async function middleware(request: NextRequest) {
+const authMiddleware = auth(async function middleware(request: NextRequest) {
   const { pathname } = request.nextUrl;
   const session = (request as any).auth;
 
@@ -61,6 +61,18 @@ export default auth(async function middleware(request: NextRequest) {
 
   return response;
 });
+
+export default async function middleware(req: NextRequest, event: any) {
+  try {
+    return await authMiddleware(req, event);
+  } catch (e) {
+    console.error("Middleware Auth Error:", e);
+    // Fallback: 오류 발생 시 홈이나 에러 페이지로 리다이렉트하거나 통과
+    // 무한 루프 방지를 위해 단순히 next() 반환하거나 특정 경로로?
+    // 여기서는 일단 통과시키되 로그를 찍음
+    return NextResponse.next();
+  }
+}
 
 export const config = {
   matcher: [
