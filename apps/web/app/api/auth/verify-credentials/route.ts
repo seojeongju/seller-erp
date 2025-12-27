@@ -1,29 +1,14 @@
 import { NextRequest, NextResponse } from "next/server";
-import { PrismaClient } from "@seller-erp/db";
-import { PrismaD1 } from "@prisma/adapter-d1";
-import { getRequestContext } from "@cloudflare/next-on-pages";
+import { prisma } from "@seller-erp/db";
 import * as bcrypt from "bcryptjs";
 
-export const runtime = "edge";
+// Note: This endpoint runs on Node.js runtime (not Edge)
+// It's called internally by the auth.ts authorize function
 
 interface CredentialsBody {
     email: string;
     password: string;
     tenantSlug: string;
-}
-
-// Helper function to get Prisma client with D1 at runtime
-function getPrismaClient() {
-    try {
-        const { env } = getRequestContext();
-        if ((env as any)?.DB) {
-            const adapter = new PrismaD1((env as any).DB);
-            return new PrismaClient({ adapter: adapter as any });
-        }
-    } catch {
-        // Not in Cloudflare environment
-    }
-    return new PrismaClient();
 }
 
 export async function POST(request: NextRequest) {
@@ -37,8 +22,6 @@ export async function POST(request: NextRequest) {
                 { status: 400 }
             );
         }
-
-        const prisma = getPrismaClient();
 
         try {
             // 테넌트 조회
@@ -92,8 +75,12 @@ export async function POST(request: NextRequest) {
                 tenantId: user.tenantId,
                 tenantSlug: tenant.slug,
             });
-        } finally {
-            await prisma.$disconnect();
+        } catch (dbError) {
+            console.error("Database error:", dbError);
+            return NextResponse.json(
+                { message: "데이터베이스 오류가 발생했습니다." },
+                { status: 500 }
+            );
         }
     } catch (error) {
         console.error("Credential verification error:", error);
