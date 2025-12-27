@@ -2,7 +2,7 @@
 
 import { createContext, useContext, useEffect, useState } from "react";
 import { useSession } from "next-auth/react";
-import { TenantContext as TenantContextType } from "@seller-erp/types";
+import { TenantContext as TenantContextType, UserRole } from "@seller-erp/types";
 
 const TenantContext = createContext<TenantContextType | null>(null);
 
@@ -18,7 +18,7 @@ export function TenantProvider({ children }: { children: React.ReactNode }) {
         tenantId: session.user.tenantId,
         tenantSlug: session.user.tenantSlug,
         userId: session.user.id,
-        userRole: session.user.role,
+        userRole: session.user.role as UserRole,
       });
     } else {
       setTenantContext(null);
