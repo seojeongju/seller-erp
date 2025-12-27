@@ -135,11 +135,11 @@ export default function BulkUploadPage() {
             });
 
             if (!response.ok) {
-                const errorData = await response.json().catch(() => ({}));
+                const errorData = await response.json().catch(() => ({})) as { message?: string };
                 throw new Error(errorData.message || "업로드에 실패했습니다.");
             }
 
-            const result = await response.json();
+            const result = await response.json() as { success: number; failed: number; errors: string[] };
             setResults(result);
 
             if (result.failed === 0) {

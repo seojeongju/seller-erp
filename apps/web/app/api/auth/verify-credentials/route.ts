@@ -1,17 +1,23 @@
 import { NextRequest, NextResponse } from "next/server";
-import { PrismaClient } from "@prisma/client";
+import { PrismaClient } from "@seller-erp/db";
 import { PrismaD1 } from "@prisma/adapter-d1";
 import { getRequestContext } from "@cloudflare/next-on-pages";
 import * as bcrypt from "bcryptjs";
 
 export const runtime = "edge";
 
+interface CredentialsBody {
+    email: string;
+    password: string;
+    tenantSlug: string;
+}
+
 // Helper function to get Prisma client with D1 at runtime
 function getPrismaClient() {
     try {
         const { env } = getRequestContext();
-        if (env?.DB) {
-            const adapter = new PrismaD1(env.DB);
+        if ((env as any)?.DB) {
+            const adapter = new PrismaD1((env as any).DB);
             return new PrismaClient({ adapter: adapter as any });
         }
     } catch {
@@ -22,7 +28,7 @@ function getPrismaClient() {
 
 export async function POST(request: NextRequest) {
     try {
-        const body = await request.json();
+        const body = await request.json() as CredentialsBody;
         const { email, password, tenantSlug } = body;
 
         if (!email || !password || !tenantSlug) {
@@ -89,10 +95,11 @@ export async function POST(request: NextRequest) {
         } finally {
             await prisma.$disconnect();
         }
-    } catch (error: any) {
+    } catch (error) {
         console.error("Credential verification error:", error);
+        const errorMessage = error instanceof Error ? error.message : "인증 중 오류가 발생했습니다.";
         return NextResponse.json(
-            { message: error.message || "인증 중 오류가 발생했습니다." },
+            { message: errorMessage },
             { status: 500 }
         );
     }

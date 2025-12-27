@@ -33,14 +33,15 @@ export const { handlers, auth, signIn, signOut } = NextAuth({
                     });
 
                     if (!response.ok) {
-                        const error = await response.json().catch(() => ({ message: "인증 실패" }));
-                        throw new Error(error.message || "인증 실패");
+                        const errorData = await response.json().catch(() => ({ message: "인증 실패" })) as { message?: string };
+                        throw new Error(errorData.message || "인증 실패");
                     }
 
-                    const user = await response.json();
+                    const user = await response.json() as User;
                     return user;
-                } catch (error: any) {
-                    throw new Error(error.message || "인증 중 오류가 발생했습니다.");
+                } catch (error) {
+                    const errorMessage = error instanceof Error ? error.message : "인증 중 오류가 발생했습니다.";
+                    throw new Error(errorMessage);
                 }
             },
         }),
