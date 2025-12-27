@@ -13,8 +13,8 @@ export const metadata: Metadata = {
   description: "주얼리, 소형 카메라, 소형 전자제품 판매 업체를 위한 현대적인 SaaS ERP",
 };
 
-export const dynamic = 'force-dynamic';
-export const runtime = 'edge';
+// export const dynamic = 'force-dynamic';
+// export const runtime = 'edge';
 
 export default function RootLayout({
   children,
