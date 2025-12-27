@@ -15,7 +15,7 @@ const createPrismaClient = () => {
   if (d1) {
     // Cloudflare 환경 (D1 사용)
     const adapter = new PrismaD1(d1);
-    return new PrismaClient({ adapter });
+    return new PrismaClient({ adapter: adapter as any });
   } else {
     // 로컬 환경 (SQLite 파일 사용)
     return new PrismaClient({
