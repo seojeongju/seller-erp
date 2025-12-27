@@ -1,9 +1,8 @@
 import { NextRequest, NextResponse } from "next/server";
-import { prisma } from "@seller-erp/db";
+import { getDbClient } from "@/lib/db";
 import * as bcrypt from "bcryptjs";
 
-// Note: This endpoint runs on Node.js runtime (not Edge)
-// It's called internally by the auth.ts authorize function
+export const runtime = "edge";
 
 interface CredentialsBody {
     email: string;
@@ -12,6 +11,7 @@ interface CredentialsBody {
 }
 
 export async function POST(request: NextRequest) {
+    const prisma = getDbClient();
     try {
         const body = await request.json() as CredentialsBody;
         const { email, password, tenantSlug } = body;

@@ -1,6 +1,6 @@
 import { NextRequest, NextResponse } from "next/server";
-import { prisma } from "@seller-erp/db";
 import { Prisma } from "@seller-erp/db";
+import { getDbClient } from "@/lib/db";
 import { getCurrentUser } from "@/lib/auth";
 export const runtime = 'edge';
 
@@ -22,6 +22,7 @@ const safeStringify = (value: any, defaultValue: string = '[]') => {
 
 // GET /api/products
 export async function GET(request: NextRequest) {
+    const prisma = getDbClient();
     try {
         const user = await getCurrentUser();
         if (!user) {
@@ -77,7 +78,7 @@ export async function GET(request: NextRequest) {
             prisma.product.count({ where }),
         ]);
 
-        const transformedData = products.map((product) => ({
+        const transformedData = products.map((product: any) => ({
             ...product,
             imageUrls: safeParse(product.imageUrls, []),
             tags: safeParse(product.tags, []),
@@ -104,6 +105,7 @@ export async function GET(request: NextRequest) {
 
 // POST /api/products
 export async function POST(request: NextRequest) {
+    const prisma = getDbClient();
     try {
         const user = await getCurrentUser();
         if (!user) {
@@ -126,7 +128,7 @@ export async function POST(request: NextRequest) {
             shippingFee: productData.shippingFee ? new Prisma.Decimal(productData.shippingFee) : 0,
         };
 
-        const newProduct = await prisma.$transaction(async (tx) => {
+        const newProduct = await prisma.$transaction(async (tx: any) => {
             const product = await tx.product.create({
                 data: dbData as any,
             });
@@ -161,7 +163,7 @@ export async function POST(request: NextRequest) {
             imageUrls: safeParse(createdProduct.imageUrls, []),
             tags: safeParse(createdProduct.tags, []),
             noticeInfo: safeParse(createdProduct.noticeInfo, {}),
-            variants: createdProduct.variants.map(v => ({
+            variants: createdProduct.variants.map((v: any) => ({
                 ...v,
                 attributes: safeParse(v.attributes as string, {})
             }))
