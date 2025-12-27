@@ -1,5 +1,4 @@
 import { getSession } from "next-auth/react";
-import { auth } from "@/auth";
 
 const API_URL = process.env.NEXT_PUBLIC_API_URL || "/api";
 
@@ -29,15 +28,13 @@ export async function apiClient<T>(
   return data.data || data;
 }
 
-// 서버 사이드 API 호출
+// 서버 사이드 API 호출 (session을 파라미터로 받음)
 export async function apiServer<T>(
   endpoint: string,
+  tenantSlug: string = "",
   options: RequestInit = {}
 ): Promise<T> {
   try {
-    const session = await auth();
-    const tenantSlug = session?.user?.tenantSlug || "";
-
     // 서버 사이드에서는 상대 경로(/api)를 사용할 수 없으므로 절대 경로로 변환 필요
     const baseUrl = API_URL.startsWith("http")
       ? API_URL
