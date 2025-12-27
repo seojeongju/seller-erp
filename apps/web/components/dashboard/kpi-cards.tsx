@@ -88,9 +88,34 @@ export function KPICards({ data }: KPICardsProps) {
     },
   ];
 
-  {
-    kpi.change && (
-    </div >
+  return (
+    <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
+      {kpis.map((kpi, index) => (
+        <motion.div
+          key={kpi.title}
+          initial={{ opacity: 0, y: 20 }}
+          animate={{ opacity: 1, y: 0 }}
+          transition={{ duration: 0.3, delay: index * 0.1 }}
+          className={`p-6 rounded-xl border border-gray-100 bg-white shadow-sm hover:shadow-md transition-shadow ${kpi.warning ? 'border-red-100 ring-1 ring-red-50' : ''}`}
+        >
+          <div className="flex items-center justify-between mb-4">
+            <div className={`p-3 rounded-lg ${kpi.bgColor} ${kpi.color}`}>
+              <kpi.icon className="w-6 h-6" />
+            </div>
+            {kpi.change && (
+              <div className="flex items-center gap-1 text-sm font-medium text-green-600 bg-green-50 px-2.5 py-1 rounded-full">
+                <span>{kpi.change}</span>
+                <span>{kpi.changeValue}</span>
+                <span className="text-gray-500 font-normal ml-1">({kpi.changeLabel})</span>
+              </div>
+            )}
+          </div>
+          <div>
+            <p className="text-sm font-medium text-gray-500 mb-1">{kpi.title}</p>
+            <h3 className="text-2xl font-bold text-gray-900">{kpi.value}</h3>
+          </div>
+        </motion.div>
+      ))}
+    </div>
   );
-  }
-
+}
