@@ -2,6 +2,7 @@ import { NextRequest, NextResponse } from "next/server";
 import { prisma } from "@seller-erp/db";
 import { Prisma } from "@seller-erp/db";
 import { getCurrentUser } from "@/lib/auth";
+export const runtime = 'edge';
 
 const safeParse = (value: string | null, defaultValue: any) => {
     if (!value) return defaultValue;
