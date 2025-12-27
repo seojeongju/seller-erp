@@ -12,6 +12,7 @@
     "lint": "next lint"
   },
   "dependencies": {
+    "@cloudflare/next-on-pages": "^1.13.16",
     "@seller-erp/db": "file:../../packages/db",
     "@seller-erp/types": "file:../../packages/types",
     "@seller-erp/ui": "file:../../packages/ui",

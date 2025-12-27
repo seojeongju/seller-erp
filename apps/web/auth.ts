@@ -1,10 +1,26 @@
 import NextAuth from "next-auth";
 import Credentials from "next-auth/providers/credentials";
-import { prisma } from "@seller-erp/db";
 import * as bcrypt from "bcryptjs";
 import type { User } from "next-auth";
+import { PrismaClient } from "@prisma/client";
+import { PrismaD1 } from "@prisma/adapter-d1";
+import { getRequestContext } from "@cloudflare/next-on-pages";
 
-// Edge-compatible configuration (no database adapter for Edge)
+// Helper function to get Prisma client with D1 at runtime
+function getPrismaClient() {
+    try {
+        const { env } = getRequestContext();
+        if (env?.DB) {
+            const adapter = new PrismaD1(env.DB);
+            return new PrismaClient({ adapter: adapter as any });
+        }
+    } catch {
+        // Not in Cloudflare environment, use regular client
+    }
+    return new PrismaClient();
+}
+
+// Edge-compatible configuration
 export const { handlers, auth, signIn, signOut } = NextAuth({
     providers: [
         Credentials({
@@ -23,47 +39,54 @@ export const { handlers, auth, signIn, signOut } = NextAuth({
                 const password = credentials.password as string;
                 const tenantSlug = credentials.tenantSlug as string;
 
-                // 테넌트 조회
-                const tenant = await prisma.tenant.findUnique({
-                    where: { slug: tenantSlug },
-                });
+                // Get Prisma client at runtime with D1 binding
+                const prisma = getPrismaClient();
 
-                if (!tenant) {
-                    throw new Error("테넌트를 찾을 수 없습니다.");
-                }
+                try {
+                    // 테넌트 조회
+                    const tenant = await prisma.tenant.findUnique({
+                        where: { slug: tenantSlug },
+                    });
 
-                // 사용자 조회 (테넌트와 이메일로)
-                const user = await prisma.user.findUnique({
-                    where: {
-                        tenantId_email: {
-                            tenantId: tenant.id,
-                            email: email,
+                    if (!tenant) {
+                        throw new Error("테넌트를 찾을 수 없습니다.");
+                    }
+
+                    // 사용자 조회 (테넌트와 이메일로)
+                    const user = await prisma.user.findUnique({
+                        where: {
+                            tenantId_email: {
+                                tenantId: tenant.id,
+                                email: email,
+                            },
                         },
-                    },
-                    include: {
-                        tenant: true,
-                    },
-                });
+                        include: {
+                            tenant: true,
+                        },
+                    });
 
-                if (!user) {
-                    throw new Error("이메일 또는 비밀번호가 올바르지 않습니다.");
+                    if (!user) {
+                        throw new Error("이메일 또는 비밀번호가 올바르지 않습니다.");
+                    }
+
+                    // 비밀번호 확인
+                    const isPasswordValid = await bcrypt.compare(password, user.password);
+
+                    if (!isPasswordValid) {
+                        throw new Error("이메일 또는 비밀번호가 올바르지 않습니다.");
+                    }
+
+                    return {
+                        id: user.id,
+                        email: user.email,
+                        name: user.name,
+                        role: user.role,
+                        tenantId: user.tenantId,
+                        tenantSlug: tenant.slug,
+                    };
+                } finally {
+                    await prisma.$disconnect();
                 }
-
-                // 비밀번호 확인
-                const isPasswordValid = await bcrypt.compare(password, user.password);
-
-                if (!isPasswordValid) {
-                    throw new Error("이메일 또는 비밀번호가 올바르지 않습니다.");
-                }
-
-                return {
-                    id: user.id,
-                    email: user.email,
-                    name: user.name,
-                    role: user.role,
-                    tenantId: user.tenantId,
-                    tenantSlug: tenant.slug,
-                };
             },
         }),
     ],
