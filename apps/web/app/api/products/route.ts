@@ -110,7 +110,7 @@ export async function POST(request: NextRequest) {
             return NextResponse.json({ message: "Unauthorized" }, { status: 401 });
         }
 
-        const body = await request.json();
+        const body = await request.json() as Record<string, any>;
         const { variants, ...productData } = body;
 
         const dbData = {

@@ -87,7 +87,7 @@ export async function PATCH(
             return NextResponse.json({ message: "Unauthorized" }, { status: 401 });
         }
 
-        const body = await request.json();
+        const body = await request.json() as Record<string, any>;
         const dbData: any = { ...body };
 
         // JSON Stringify
